@@ -1,9 +1,18 @@
+from typing import Any, Optional
+
 errors = []
 
 
-def read_config(file_name):
+def read_config(file_name: str) -> dict:
     config = {}
-    valid_keys = {"WIDTH", "HEIGHT", "ENTRY", "EXIT", "OUTPUT_FILE", "PERFECT"}
+    valid_keys = {
+        "WIDTH",
+        "HEIGHT",
+        "ENTRY",
+        "EXIT",
+        "OUTPUT_FILE",
+        "PERFECT",
+        "SEED"}
 
     with open(file_name) as file:
         for line in file:
@@ -30,7 +39,7 @@ def read_config(file_name):
     return config
 
 
-def width_parsing(config):
+def width_parsing(config: dict) -> Optional[int]:
     if "WIDTH" not in config:
         errors.append("Missing WIDTH")
         return None
@@ -47,7 +56,7 @@ def width_parsing(config):
     return width
 
 
-def height_parsing(config):
+def height_parsing(config: dict) -> Optional[int]:
     if "HEIGHT" not in config:
         errors.append("Missing HEIGHT")
         return None
@@ -63,7 +72,7 @@ def height_parsing(config):
     return height
 
 
-def entry_parsing(config):
+def entry_parsing(config: dict) -> Optional[tuple[int, int]]:
     if "ENTRY" not in config:
         errors.append("Missing ENTRY")
         return None
@@ -88,7 +97,7 @@ def entry_parsing(config):
     return x, y
 
 
-def exit_parsing(config):
+def exit_parsing(config: dict) -> Optional[tuple[int, int]]:
     if "EXIT" not in config:
         errors.append("Missing EXIT")
         return None
@@ -113,7 +122,7 @@ def exit_parsing(config):
     return x, y
 
 
-def output_file_parsing(config):
+def output_file_parsing(config: dict) -> Optional[Any]:
     if "OUTPUT_FILE" not in config:
         errors.append("Missing OUTPUT_FILE")
         return None
@@ -132,7 +141,7 @@ def output_file_parsing(config):
     return output_file
 
 
-def perfect_parsing(config):
+def perfect_parsing(config: dict) -> Optional[Any]:
     if "PERFECT" not in config:
         errors.append("Missing PERFECT")
         return None
@@ -146,6 +155,23 @@ def perfect_parsing(config):
     return perfect == "True"
 
 
+def seed_parsing(config: dict) -> Optional[int]:
+    if "SEED" not in config:
+        errors.append("Missing SEED")
+        return None
+
+    try:
+        seed = int(config["SEED"])
+    except ValueError:
+        errors.append("SEED must be format SEED=x(int)")
+        return None
+
+    if seed < 0:
+        errors.append("SEED must be >= 0")
+
+    return seed
+
+
 try:
     config = read_config("config.txt")
 except FileNotFoundError:
@@ -155,12 +181,18 @@ except FileNotFoundError:
 if not config:
     errors.append("Config file is empty")
 
+
 width = width_parsing(config)
 height = height_parsing(config)
 entry = entry_parsing(config)
 exit_pos = exit_parsing(config)
 output_file = output_file_parsing(config)
 perfect = perfect_parsing(config)
+seed = seed_parsing(config)
+
+data: tuple[Any, Any, Any, Any, Any, Any, Any] = (
+    width, height, entry, exit_pos, output_file, perfect, seed)
+
 
 if entry is not None and width is not None and height is not None:
     x, y = entry
@@ -178,5 +210,4 @@ if entry is not None and exit_pos is not None and entry == exit_pos:
 if errors:
     for error in errors:
         print(error)
-if errors:
     exit(1)
