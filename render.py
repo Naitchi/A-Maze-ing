@@ -51,53 +51,95 @@ class Display:
         self.mlx = mlx
         self.mlx_ptr = mlx_ptr
         self.window = window
-        self.img = img
+        self.img: ImgData = img
         self.maze = maze
         self.rend_data = rend_data
         self.set_ppc()
 
-    def set_ppc(self):
+    def set_ppc(self):  # Calcul le nombre de pixel qu'on a par cellule du maze
         img_size = min(self.img.width, self.img.height)
         maze_size = max(self.maze.width, self.maze.height)
         self.rend_data.ppc = img_size // maze_size
 
-    def put_pixel(self, offset, color) -> None:
+    def put_pixel(self, offset, color) -> None:  # Ecrit chaque octet du pixel
         self.img.data[offset: offset + 4] = color.to_bytes(4, 'little')
 
+    # Trouve le pixel exacte qu'on doit print -> on skip chaque ligne + chaque
+    # pixel dans la ligne
     def offset_finder(self, x, y):
         return (y * self.img.sl + x * self.img.bpp) // 8
 
-    def clear_image(self):
+    def clear_image(self):  # Mets chaque pixel en noir pour clear l'image
         self.img.data[:] = b'\x00' * len(self.img.data)
 
+    # Va recuperer la base qui est le debut de notre cellule en haut a gauche,
+    # puis va regarder la valeur envoyer depuis la grille du maze et regarder
+    # le binaire pour savoir quel mur doit etre rempli ou non
+    def render_walls(self, col, row, value):
+        ppc = self.rend_data.ppc
+        color = self.rend_data.color
+        opp = self.img.bpp // 8
+
+        base = self.offset_finder(col * ppc, row * ppc)
+
+        if value & 1:  # North
+            for dx in range(ppc):
+                self.put_pixel(base + dx * opp, color)
+        if value & 2:  # East
+            for dy in range(ppc):
+                self.put_pixel(base + dy * self.img.sl +
+                               (ppc - 1) * opp, color)
+
+        if value & 4:  # South
+            for dx in range(ppc):
+                self.put_pixel(base + (ppc - 1) *
+                               self.img.sl + dx * opp, color)
+        if value & 8:  # West
+            for dy in range(ppc):
+                self.put_pixel(base + dy * self.img.sl, color)
+
+    # Si une valeur dans la grille est de 15 tu remplis toute la cellule (42
+    # pattern)
     def render_cell(self, col, row, color):
+
         ppc = self.rend_data.ppc
         for dy in range(ppc):
             for dx in range(ppc):
                 offset = self.offset_finder(col * ppc + dx, row * ppc + dy)
                 self.put_pixel(offset, color)
 
+    # On va recuperer chaque valeur de la grille, recuperer sa position dans
+    # le maze et appeller la fonction qui va print les murs
     def render_maze(self):
-        for row in range(self.maze.height):
-            for col in range(self.maze.width):
-                cell = self.maze.grid[row][col]
-                if cell.is_wall:
-                    color = self.rend_data.color
-                elif cell.is_entry:
-                    color = self.rend_data.entry_color
-                elif cell.is_exit:
-                    color = self.rend_data.exit_color
-                else:
-                    color = 0xFF000000
-                self.render_cell(col, row, color)
+        for i, value in enumerate(self.maze.grid):
+            col = i % self.maze.width
+            row = i // self.maze.width
+            if value == 15:
+                self.render_cell(col, row, self.rend_data.color)
+            else:
+                self.render_walls(col, row, value)
 
+    # Fonction qui va print le chemin de solution sur l'image
     def render_path(self):
         if not self.rend_data.show_path:
             return
-        for cell in self.maze.path:
-            self.render_cell(cell.col, cell.row, self.rend_data.path_color)
+        current = self.maze.entry
+        for direction in self.maze.path[:-1]:
+            current = self.next_step(direction, current)
+            self.render_cell(current[0], current[1], self.rend_data.path_color)
 
-    def push(self, window_width: int) -> None:
+    # Va recup la position ou on est + la direction ou on va
+    def next_step(direction: str, current: tuple) -> tuple:
+        x, y = current
+        moves = {
+            "E": (x + 1, y),
+            "S": (x, y + 1),
+            "W": (x - 1, y),
+            "N": (x, y - 1)
+        }
+        return moves[direction]
+
+    def image_to_window(self, window_width: int) -> None:
         # Calcul la marge entre coin et debut du maze
         pos_x = (window_width - self.rend_data.ppc * self.maze.width) // 2
 
@@ -122,4 +164,4 @@ class Display:
         self.draw_entry_exit()
         if self.rend_data.show_path:
             self.render_path()
-        self.push(self.img.width)
+        self.image_to_window(self.img.width)
