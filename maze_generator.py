@@ -1,7 +1,14 @@
 import random
 
 
-def print_maze(maze):
+Coord = tuple[int, int]
+Direction = tuple[int, int]
+Maze = list[list[int]]
+
+
+def print_maze(maze: Maze) -> None:
+    """Print the maze as ASCII art."""
+
     for line in maze:
         top = ""
         middle = ""
@@ -23,9 +30,28 @@ def print_maze(maze):
         print(bottom)
 
 
-def get_available_direction(old_coord, in_linking, fortytwo, height, width):
+def get_available_direction(
+    old_coord: Coord,
+    in_linking: list[Coord],
+    fortytwo: list[Coord],
+    height: int,
+    width: int,
+) -> list[Direction] | None:
+    """Return available neighbor directions from a cell.
+
+    Args:
+        old_coord: Current cell coordinates.
+        in_linking: Cells in the current temporary path.
+        fortytwo: Forbidden cells that must not be used.
+        height: Maze height in cells.
+        width: Maze width in cells.
+
+    Returns:
+        A list of valid directions, or None if none are possible.
+    """
+
     i, j = old_coord
-    directions = []
+    directions: list[Direction] = []
     for d_i, d_j in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
         o = i + d_i
         k = j + d_j
@@ -43,7 +69,17 @@ def get_available_direction(old_coord, in_linking, fortytwo, height, width):
     return directions
 
 
-def build_fortytwo(height, width):
+def build_fortytwo(height: int, width: int) -> list[Coord]:
+    """Build centered coordinates for the forbidden 42 pattern.
+
+    Args:
+        height: Maze height in cells.
+        width: Maze width in cells.
+
+    Returns:
+        The list of forbidden coordinates for the pattern.
+    """
+
     pattern = [
         "1010111",
         "1010001",
@@ -55,11 +91,11 @@ def build_fortytwo(height, width):
     pattern_height = len(pattern)
     pattern_width = len(pattern[0])
     if height < pattern_height + 3 or width < pattern_width + 3:
-        return []
+        return []  # TODO faut que je mette un message d'erreur pour ça
 
     start_i = (height - pattern_height) // 2
     start_j = (width - pattern_width) // 2
-    blocked = []
+    blocked: list[Coord] = []
 
     for d_i, row in enumerate(pattern):
         for d_j, pixel in enumerate(row):
@@ -68,7 +104,13 @@ def build_fortytwo(height, width):
     return blocked
 
 
-def create_path(maze, in_linking, linked):
+def create_path(
+    maze: Maze,
+    in_linking: list[Coord],
+    linked: list[Coord],
+) -> None:
+    """Carve passages along a temporary path and merge it into linked."""
+
     m = 0
     while m < len(in_linking) - 1:
         case1 = in_linking[m]
@@ -94,19 +136,33 @@ def create_path(maze, in_linking, linked):
 
 
 def advance_path_step(
-    i,
-    j,
-    maze,
-    in_linking,
-    linked,
-    not_linked,
-    fortytwo,
-    height,
-    width,
-):
-    d_i, d_j = random.choice(
-        get_available_direction((i, j), in_linking, fortytwo, height, width)
+    i: int,
+    j: int,
+    maze: Maze,
+    in_linking: list[Coord],
+    linked: list[Coord],
+    not_linked: list[Coord],
+    fortytwo: list[Coord],
+    height: int,
+    width: int,
+) -> tuple[int, int, bool]:
+    """Advance one random step and connect path if it reaches linked.
+
+    Returns:
+        New row, new column, and whether the path got connected.
+    """
+
+    directions = get_available_direction(
+        (i, j),
+        in_linking,
+        fortytwo,
+        height,
+        width,
     )
+    if directions is None:
+        return i, j, False
+
+    d_i, d_j = random.choice(directions)
     i += d_i
     j += d_j
 
@@ -122,18 +178,32 @@ def advance_path_step(
     return i, j, False
 
 
-def draw_a_path(maze, not_linked, linked, fortytwo, height, width):
-    in_linking = []
+def draw_a_path(
+    maze: Maze,
+    not_linked: list[Coord],
+    linked: list[Coord],
+    fortytwo: list[Coord],
+    height: int,
+    width: int,
+) -> None:
+    """Draw and connect a random path from an unlinked non-forbidden cell."""
+
+    in_linking: list[Coord] = []
 
     i = random.randint(0, height - 1)
     j = random.randint(0, width - 1)
 
     if (i, j) not in fortytwo and (i, j) not in linked:
-        while 1:
+        while True:
             in_linking.append((i, j))
             if (
                 get_available_direction(
-                    (i, j), in_linking, fortytwo, height, width)
+                    (i, j),
+                    in_linking,
+                    fortytwo,
+                    height,
+                    width,
+                )
                 is None
             ):
                 return
@@ -153,15 +223,31 @@ def draw_a_path(maze, not_linked, linked, fortytwo, height, width):
                     return
 
 
-def maze_generator(width, height, start, seed=None):
+def maze_generator(
+    width: int,
+    height: int,
+    start: Coord,
+    seed: int | None = None,
+) -> None:
+    """Generate and print a maze with an optional centered 42 forbidden area.
+
+    Args:
+        width: Maze width in cells.
+        height: Maze height in cells.
+        start: Starting cell coordinates.
+        seed: Optional random seed.
+    """
+
     maze = [[15 for _ in range(width)] for _ in range(height)]
 
     if seed is not None:
         random.seed(seed)
 
-    not_linked = [(i, j) for i in range(height) for j in range(width)]
-    linked = []
-    fortytwo = build_fortytwo(height, width)
+    not_linked: list[Coord] = [
+        (i, j) for i in range(height) for j in range(width)
+    ]
+    linked: list[Coord] = []
+    fortytwo: list[Coord] = build_fortytwo(height, width)
 
     (a, b) = start
     not_linked.remove((a, b))
