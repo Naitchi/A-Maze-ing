@@ -6,8 +6,8 @@ from mlx import Mlx
 class ImgData:
     def __init__(self) -> None:
         self.real_img = None
-        self.width = 1000
-        self.height = 1000
+        self.width = 0
+        self.height = 0
         self.data: bytearray = bytearray()
         self.bpp = 0
         self.sl = 0
@@ -17,10 +17,10 @@ class RenderConfig:
     def __init__(self):
         self.color = 0xFFFFFFFF
         self.ppc = 0
-        self.show_path = False
+        self.show_path = True
         self.entry_color = 0xFF00FF00
         self.exit_color = 0xFFFF0000
-        self.path_color = 0xFFE0E0E0
+        self.path_color = 0xFF800080
         self.menu_color = 0xFF2C3E50
 
     def next_color(self):
@@ -102,9 +102,6 @@ class Create_Img:
     # Si une valeur dans la grille est de 15 tu remplis toute la cellule (42
     # pattern)
     def render_cell(self, col, row, color):
-        if color == self.render_config_data.entry_color:
-            print(
-                f"render_cell appelée avec entry color: col={col}, row={row}")
         ppc = self.render_config_data.ppc
         for dy in range(ppc):
             for dx in range(ppc):
@@ -118,7 +115,8 @@ class Create_Img:
             for col in range(self.maze.width):
                 value = self.maze.grid[row][col]
                 if value == 15:
-                    self.render_cell(col, row, self.render_config_data.color)
+                    self.render_cell(
+                        col, row, self.render_config_data.color)
                 else:
                     self.render_walls(col, row, value)
 
@@ -129,7 +127,9 @@ class Create_Img:
         x, y = self.maze.entry
         for direction in self.maze.path[:-1]:
             x, y = self.next_direction(direction, (x, y))
-            self.render_cell(x, y, self.render_config_data.path_color)
+            if 0 <= x < self.maze.width and 0 <= y < self.maze.height:
+                self.render_cell(
+                    x, y, self.render_config_data.path_color)
 
     # Va recup la position ou on est + la direction ou on va
     @staticmethod
@@ -148,82 +148,85 @@ class Create_Img:
             self.mlx_ptr,
             self.window,
             self.img.real_img,
-            # (window_width - self.render_config_data.ppc
-            #  * self.maze.width) // 2
-            50,
-            50
+            100,
+            100
         )
 
     def draw_entry_exit(self) -> None:
         entry_y, entry_x = self.maze.entry
-        self.render_cell(entry_y, entry_x, self.render_config_data.entry_color)
+        self.render_cell(
+            entry_y,
+            entry_x,
+            self.render_config_data.entry_color)
 
         exit_y, exit_x = self.maze.exit
-        self.render_cell(exit_y, exit_x, self.render_config_data.exit_color)
+        self.render_cell(
+            exit_y,
+            exit_x,
+            self.render_config_data.exit_color)
 
     def draw_all(self) -> None:
         self.clear_image()
-        self.print_maze()
         self.draw_entry_exit()
         if self.render_config_data.show_path:
             self.render_path()
+        self.print_maze()
         self.image_to_window(self.img.width)
 
 
-class test:
-    def __init__(self, maze, img: ImgData):
+class App:
+    def __init__(self, maze):
+        self.maze = maze
+        self.render_config = RenderConfig()
+        self.img = ImgData()
         self.m = Mlx()
         self.mlx_ptr = self.m.mlx_init()
-        self.create_img(img)
-        self.create_win(img)
 
-        print(img.real_img)
+        size = max(maze.width, maze.height) * 40
+        self.img.height = size
+        self.img.width = size
+        self.img.real_img = self.m.mlx_new_image(
+            self.mlx_ptr, self.img.width, self.img.height)
+        self.img.data, self.img.bpp, self.img.sl, self.img.iformat = \
+            self.m.mlx_get_data_addr(self.img.real_img)
 
-    def create_win(self, img):
-        self.win_ptr = self.m.mlx_new_window(
+        self.win = self.m.mlx_new_window(
             self.mlx_ptr,
-            img.width + 100,
-            img.height + 100,
+            self.img.width + 200,
+            self.img.height + 200,
             "A_Maze_Ing")
 
-    def create_img(self, img):
-        img.real_img = self.m.mlx_new_image(
-            self.mlx_ptr, img.width, img.height)
-        (
-            img.data,
-            img.bpp,
-            img.sl,
-            img.iformat
-        ) = self.m.mlx_get_data_addr(img.real_img)
+        self.renderer = Create_Img(
+            self.m, self.mlx_ptr, self.win,
+            self.img, self.maze, self.render_config)
 
-    def manage_key(self, keycode, _):
-        if keycode == 49:
-            self.leave_win()
+    def run(self):
+        self.renderer.draw_all()
+        self.m.mlx_key_hook(self.win, self.on_key, self)
+        self.m.mlx_loop(self.mlx_ptr)
 
-    def leave_win(self):
-        self.m.mlx_clear_window(self.mlx_ptr, self.win_ptr)
+    def on_key(self, keycode, _):
+        actions = {
+            49: self.quit,
+            50: self.cycle_color,
+            51: self.toggle_path,
+        }
+        if keycode in actions:
+            actions[keycode]()
+
+    def quit(self):
         self.m.mlx_loop_exit(self.mlx_ptr)
 
+    def cycle_color(self, ):
+        self.renderer.clear_image()
+        self.render_config.next_color()
+        self.renderer.draw_all()
 
-def main_test(maze):
-    img = ImgData()
-    real_test = test(maze, img)   # crée mlx_ptr, win_ptr, real_img
-    render = Create_Img(
-        real_test.m,
-        real_test.mlx_ptr,
-        real_test.win_ptr,
-        img,                      # ← ImgData pas real_img
-        maze,
-        RenderConfig()
-    )
-    real_test.m.mlx_key_hook(
-        real_test.win_ptr,
-        real_test.manage_key,
-        real_test)
-    render.draw_all()
-    real_test.m.mlx_loop(real_test.mlx_ptr)
+    def toggle_path(self):
+        self.render_config.show_path = not self.render_config.show_path
+        self.m.mlx_clear_window(self.mlx_ptr, self.win)
+        self.renderer.draw_all()
 
 
 if __name__ == '__main__':
-    Maze = maze()
-    main_test(Maze)
+    App(maze()).run()
