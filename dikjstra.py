@@ -3,13 +3,13 @@ def can_move(maze, i, j, o, k, d_i, d_j):
     next_cell = maze[o][k]
 
     if d_i == 0 and d_j == 1:
-        return ((current_cell >> 2) & 1) == 0 and ((next_cell >> 0) & 1) == 0
-    if d_i == 0 and d_j == -1:
-        return ((current_cell >> 0) & 1) == 0 and ((next_cell >> 2) & 1) == 0
-    if d_i == 1 and d_j == 0:
         return ((current_cell >> 1) & 1) == 0 and ((next_cell >> 3) & 1) == 0
-    if d_i == -1 and d_j == 0:
+    if d_i == 0 and d_j == -1:
         return ((current_cell >> 3) & 1) == 0 and ((next_cell >> 1) & 1) == 0
+    if d_i == 1 and d_j == 0:
+        return ((current_cell >> 2) & 1) == 0 and ((next_cell >> 0) & 1) == 0
+    if d_i == -1 and d_j == 0:
+        return ((current_cell >> 0) & 1) == 0 and ((next_cell >> 2) & 1) == 0
     return False
 
 
@@ -31,13 +31,61 @@ def propagate_scores(maze, scores, i, j):
                 propagate_scores(maze, scores, o, k)
 
 
+def get_path(scores, end) -> str:
+    height = len(scores)
+    width = len(scores[0]) if height else 0
+
+    ci, cj = end
+    if not (0 <= ci < height and 0 <= cj < width):
+        return ""
+    if scores[ci][cj] == -1:
+        return ""
+
+    cur_score = scores[ci][cj]
+    if cur_score == 0:
+        return ""
+
+    path = []
+    while cur_score > 0:
+        found = False
+        for d_i, d_j in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+            ni = ci + d_i
+            nj = cj + d_j
+            if 0 <= ni < height and 0 <= nj < width:
+                if scores[ni][nj] == cur_score - 1:
+                    move_i = ci - ni
+                    move_j = cj - nj
+                    if move_i == -1 and move_j == 0:
+                        dir_char = 'N'
+                    elif move_i == 1 and move_j == 0:
+                        dir_char = 'S'
+                    elif move_i == 0 and move_j == 1:
+                        dir_char = 'E'
+                    elif move_i == 0 and move_j == -1:
+                        dir_char = 'W'
+                    else:
+                        return ""
+                    path.append(dir_char)
+                    ci, cj = ni, nj
+                    cur_score -= 1
+                    found = True
+                    break
+        if not found:
+            return ""
+
+    path.reverse()
+    return ''.join(path)
+
+
 def dikjstra(maze, start, width, height):
     scores = [[-1 for _ in range(width)] for _ in range(height)]
     i, j = start
     scores[i][j] = 0
 
     propagate_scores(maze, scores, i, j)
+    print(scores)
+    # print("Scores:")
+    # for line in scores:
+    #     print(line)
 
-    print("Scores:")
-    for line in scores:
-        print(line)
+    print("path: ", get_path(scores, (14, 14)))

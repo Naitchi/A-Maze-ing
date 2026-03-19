@@ -1,5 +1,5 @@
 import random
-
+import dikjstra
 
 Coord = tuple[int, int]
 Direction = tuple[int, int]
@@ -15,10 +15,10 @@ def print_maze(maze: Maze) -> None:
         bottom = ""
 
         for case in line:
-            haut = (case >> 3) & 1
-            droite = (case >> 2) & 1
-            bas = (case >> 1) & 1
-            gauche = case & 1
+            haut = (case >> 0) & 1
+            droite = (case >> 1) & 1
+            bas = (case >> 2) & 1
+            gauche = (case >> 3) & 1
 
             top += " --- " if haut else "     "
             middle += "|" if gauche else " "
@@ -121,17 +121,17 @@ def create_path(
         d_i = o - i
         d_j = k - j
         if d_i == 0 and d_j == 1:
-            maze[i][j] &= ~(1 << 2)
-            maze[o][k] &= ~(1 << 0)
-        elif d_i == 0 and d_j == -1:
-            maze[i][j] &= ~(1 << 0)
-            maze[o][k] &= ~(1 << 2)
-        elif d_i == 1 and d_j == 0:
             maze[i][j] &= ~(1 << 1)
             maze[o][k] &= ~(1 << 3)
-        elif d_i == -1 and d_j == 0:
+        elif d_i == 0 and d_j == -1:
             maze[i][j] &= ~(1 << 3)
             maze[o][k] &= ~(1 << 1)
+        elif d_i == 1 and d_j == 0:
+            maze[i][j] &= ~(1 << 2)
+            maze[o][k] &= ~(1 << 0)
+        elif d_i == -1 and d_j == 0:
+            maze[i][j] &= ~(1 << 0)
+            maze[o][k] &= ~(1 << 2)
         m += 1
 
 
@@ -262,5 +262,12 @@ def maze_generator(
 
     print_maze(maze)
 
+    print(maze)
+    dikjstra.dikjstra(maze, (0, 0), 15, 15)
 
-maze_generator(15, 15, (0, 0), None)
+# TODO verifier que ca soit un maze perfect quand demander
+# TODO verifier que ca soit un maze imperfect quand demander
+# TODO s'assurer qu'il n'y a pas de 3x3 libre
+
+
+maze_generator(15, 15, (0, 0), 42)
