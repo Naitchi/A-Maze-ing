@@ -21,7 +21,7 @@ class RenderConfig:
         self.entry_color = 0xFF00FF00
         self.exit_color = 0xFFFF0000
         self.path_color = 0xFF800080
-        self.menu_color = 0xFF2C3E50
+        self.menu_color = 0xFFFFFFFF
 
     def next_color(self):
         colors = [
@@ -149,7 +149,7 @@ class Create_Img:
             self.window,
             self.img.real_img,
             100,
-            100
+            150
         )
 
     def draw_entry_exit(self) -> None:
@@ -171,7 +171,9 @@ class Create_Img:
         if self.render_config_data.show_path:
             self.render_path()
         self.print_maze()
+        print("avant image_to_window")
         self.image_to_window(self.img.width)
+        print("apres image_to_window")
 
 
 class App:
@@ -183,8 +185,12 @@ class App:
         self.mlx_ptr = self.m.mlx_init()
 
         size = max(maze.width, maze.height) * 40
-        self.img.height = size
-        self.img.width = size
+        if size > 1500:
+            self.img.height = 1500
+            self.img.width = 1500
+        else:
+            self.img.height = size
+            self.img.width = size
         self.img.real_img = self.m.mlx_new_image(
             self.mlx_ptr, self.img.width, self.img.height)
         self.img.data, self.img.bpp, self.img.sl, self.img.iformat = \
@@ -202,6 +208,7 @@ class App:
 
     def run(self):
         self.renderer.draw_all()
+        self.menu()
         self.m.mlx_key_hook(self.win, self.on_key, self)
         self.m.mlx_loop(self.mlx_ptr)
 
@@ -221,10 +228,25 @@ class App:
         self.renderer.clear_image()
         self.render_config.next_color()
         self.renderer.draw_all()
+        self.menu()
 
     def toggle_path(self):
         self.render_config.show_path = not self.render_config.show_path
         self.m.mlx_clear_window(self.mlx_ptr, self.win)
+        self.renderer.draw_all()
+        self.menu()
+
+    def menu(self):
+        x = (self.img.width - 600) // 2
+        y = 75
+        self.m.mlx_string_put(
+            self.mlx_ptr,
+            self.win,
+            x,
+            y,
+            self.render_config.menu_color,
+            "| 1: Close the window | 2: Change the color")
+        self.m.mlx_string_put(self.mlx_ptr, self.win, (self.img.width + 300) // 2, y, self.render_config.menu_color, "| 3: Show/Hide the path | 4: Rebuild a new Maze")
         self.renderer.draw_all()
 
 
