@@ -31,7 +31,7 @@ def propagate_scores(maze, scores, i, j):
                 propagate_scores(maze, scores, o, k)
 
 
-def get_path(scores, end) -> str:
+def get_path(maze, scores, end) -> str:
     height = len(scores)
     width = len(scores[0]) if height else 0
 
@@ -53,6 +53,10 @@ def get_path(scores, end) -> str:
             nj = cj + d_j
             if 0 <= ni < height and 0 <= nj < width:
                 if scores[ni][nj] == cur_score - 1:
+                    md_i = ci - ni
+                    md_j = cj - nj
+                    if not can_move(maze, ni, nj, ci, cj, md_i, md_j):
+                        continue
                     move_i = ci - ni
                     move_j = cj - nj
                     if move_i == -1 and move_j == 0:
@@ -77,15 +81,23 @@ def get_path(scores, end) -> str:
     return ''.join(path)
 
 
-def dikjstra(maze, start, width, height):
+def dikjstra(maze, start, end):
+    """Compute distance scores from `start` over `maze`.
+
+    Width and height are derived from `maze` to avoid mismatches that
+    can cause IndexError when accessing `scores`.
+    """
+    height = len(maze)
+    width = len(maze[0]) if height else 0
+
     scores = [[-1 for _ in range(width)] for _ in range(height)]
+
     i, j = start
+    if not (0 <= i < height and 0 <= j < width):
+        raise IndexError(f"start {start} out of maze bounds {(height, width)}")
+
     scores[i][j] = 0
 
     propagate_scores(maze, scores, i, j)
-    print(scores)
-    # print("Scores:")
-    # for line in scores:
-    #     print(line)
 
-    print("path: ", get_path(scores, (14, 14)))
+    print("path:", get_path(maze, scores, end))
