@@ -1,4 +1,4 @@
-from mazegen import maze
+from maze_generator import Maze
 from typing import Any
 from mlx import Mlx
 
@@ -17,11 +17,11 @@ class RenderConfig:
     def __init__(self):
         self.color = 0xFFFFFFFF
         self.ppc = 0
-        self.show_path = True
+        self.show_path = False
         self.entry_color = 0xFF00FF00
         self.exit_color = 0xFFFF0000
         self.path_color = 0xFF800080
-        self.menu_color = 0xFF2C3E50
+        self.menu_color = 0xFFFFFFFF
 
     def next_color(self):
         colors = [
@@ -46,7 +46,7 @@ class Create_Img:
                  mlx_ptr: Any,
                  window: Any,
                  img: ImgData,
-                 maze: maze,
+                 maze: Maze,
                  render_config_data: RenderConfig) -> None:
         self.mlx = mlx
         self.mlx_ptr = mlx_ptr
@@ -149,7 +149,7 @@ class Create_Img:
             self.window,
             self.img.real_img,
             100,
-            100
+            150
         )
 
     def draw_entry_exit(self) -> None:
@@ -183,8 +183,12 @@ class App:
         self.mlx_ptr = self.m.mlx_init()
 
         size = max(maze.width, maze.height) * 40
-        self.img.height = size
-        self.img.width = size
+        if size > 1500:
+            self.img.height = 1500
+            self.img.width = 1500
+        else:
+            self.img.height = size
+            self.img.width = size
         self.img.real_img = self.m.mlx_new_image(
             self.mlx_ptr, self.img.width, self.img.height)
         self.img.data, self.img.bpp, self.img.sl, self.img.iformat = \
@@ -202,6 +206,7 @@ class App:
 
     def run(self):
         self.renderer.draw_all()
+        self.menu()
         self.m.mlx_key_hook(self.win, self.on_key, self)
         self.m.mlx_loop(self.mlx_ptr)
 
@@ -210,12 +215,27 @@ class App:
             49: self.quit,
             50: self.cycle_color,
             51: self.toggle_path,
+            52: self.regenerate,
         }
         if keycode in actions:
             actions[keycode]()
 
     def quit(self):
         self.m.mlx_loop_exit(self.mlx_ptr)
+
+    def menu(self):
+        text = "| 1: Close | 2: Color | 3: Path | 4: Regen |"
+        text_width = len(text) * 8      # 8px par caractère approximatif
+        win_width = self.img.width + 200
+        x = (win_width - text_width) // 2
+        y = 75
+        self.m.mlx_string_put(
+            self.mlx_ptr,
+            self.win,
+            x,
+            y,
+            self.render_config.menu_color,
+            text)
 
     def cycle_color(self, ):
         self.renderer.clear_image()
@@ -225,8 +245,26 @@ class App:
     def toggle_path(self):
         self.render_config.show_path = not self.render_config.show_path
         self.m.mlx_clear_window(self.mlx_ptr, self.win)
+        self.menu()
         self.renderer.draw_all()
+
+    def regenerate(self):
+        self.maze = Maze(
+            self.maze.width,
+            self.maze.height,
+            None,
+            self.maze.entry,
+            self.maze.exit,
+            self.maze.output_file,
+            self.maze.perfect
+        )
+        self.maze.generatore()
+        self.renderer.maze = self.maze
+        self.renderer.get_ppc()
+        self.m.mlx_clear_window(self.mlx_ptr, self.win)
+        self.renderer.draw_all()
+        self.menu()
 
 
 if __name__ == '__main__':
-    App(maze()).run()
+    App(Maze()).run()
