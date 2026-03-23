@@ -174,8 +174,8 @@ def seed_parsing(config: dict) -> Optional[int]:
 
 try:
     config = read_config("config.txt")
-except FileNotFoundError:
-    print("Config file not found")
+except Exception:
+    print("Catching Exception with config.txt")
     exit(1)
 
 if not config:
@@ -189,10 +189,6 @@ exit_pos = exit_parsing(config)
 output_file = output_file_parsing(config)
 perfect = perfect_parsing(config)
 seed = seed_parsing(config)
-
-data: tuple[Any, Any, Any, Any, Any, Any, Any] = (
-    width, height, entry, exit_pos, output_file, perfect, seed)
-
 
 if entry is not None and width is not None and height is not None:
     x, y = entry
@@ -211,3 +207,13 @@ if errors:
     for error in errors:
         print(error)
     exit(1)
+
+
+class MazeConfig:
+    def __init__(self, width, height, entry, exit_pos, perfect, seed):
+        self.width = width
+        self.height = height
+        self.entry = entry
+        self.exit_pos = exit_pos
+        self.perfect = perfect
+        self.seed = seed

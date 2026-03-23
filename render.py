@@ -171,9 +171,7 @@ class Create_Img:
         if self.render_config_data.show_path:
             self.render_path()
         self.print_maze()
-        print("avant image_to_window")
         self.image_to_window(self.img.width)
-        print("apres image_to_window")
 
 
 class App:
@@ -217,6 +215,7 @@ class App:
             49: self.quit,
             50: self.cycle_color,
             51: self.toggle_path,
+            52: self.regenerate,
         }
         if keycode in actions:
             actions[keycode]()
@@ -224,22 +223,11 @@ class App:
     def quit(self):
         self.m.mlx_loop_exit(self.mlx_ptr)
 
-    def cycle_color(self, ):
-        self.renderer.clear_image()
-        self.render_config.next_color()
-        self.renderer.draw_all()
-        self.menu()
-
-    def toggle_path(self):
-        self.render_config.show_path = not self.render_config.show_path
-        self.m.mlx_clear_window(self.mlx_ptr, self.win)
-        self.renderer.draw_all()
-        self.menu()
-
     def menu(self):
-        text = "| 1: Close | 2: Color | 3: Path | 4: Rebuild |"
-        text_width = len(text) * 8
-        x = (self.img.width + 200 - text_width) // 2
+        text = "| 1: Close | 2: Color | 3: Path | 4: Regen |"
+        text_width = len(text) * 8      # 8px par caractère approximatif
+        win_width = self.img.width + 200
+        x = (win_width - text_width) // 2
         y = 75
         self.m.mlx_string_put(
             self.mlx_ptr,
@@ -248,6 +236,34 @@ class App:
             y,
             self.render_config.menu_color,
             text)
+
+    def cycle_color(self, ):
+        self.renderer.clear_image()
+        self.render_config.next_color()
+        self.renderer.draw_all()
+
+    def toggle_path(self):
+        self.render_config.show_path = not self.render_config.show_path
+        self.m.mlx_clear_window(self.mlx_ptr, self.win)
+        self.menu()
+        self.renderer.draw_all()
+
+    def regenerate(self):
+        self.maze = maze(
+            self.maze.width,
+            self.maze.height,
+            None,
+            self.maze.entry,
+            self.maze.exit,
+            self.maze.output_file,
+            self.maze.perfect
+        )
+        self.maze.generate()
+        self.renderer.maze = self.maze
+        self.renderer.get_ppc()
+        self.m.mlx_clear_window(self.mlx_ptr, self.win)
+        self.renderer.draw_all()
+        self.menu()
 
 
 if __name__ == '__main__':
