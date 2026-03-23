@@ -237,7 +237,9 @@ class App:
         self.menu()
 
     def menu(self):
-        x = (self.img.width - 600) // 2
+        text = "| 1: Close | 2: Color | 3: Path | 4: Rebuild |"
+        text_width = len(text) * 8
+        x = (self.img.width + 200 - text_width) // 2
         y = 75
         self.m.mlx_string_put(
             self.mlx_ptr,
@@ -245,9 +247,7 @@ class App:
             x,
             y,
             self.render_config.menu_color,
-            "| 1: Close the window | 2: Change the color")
-        self.m.mlx_string_put(self.mlx_ptr, self.win, (self.img.width + 300) // 2, y, self.render_config.menu_color, "| 3: Show/Hide the path | 4: Rebuild a new Maze")
-        self.renderer.draw_all()
+            text)
 
 
 if __name__ == '__main__':
