@@ -1,213 +1,254 @@
-from typing import Any, Optional
-
-errors = []
+from typing import Optional
 
 
-def read_config(file_name: str) -> dict:
-    config = {}
-    valid_keys = {
-        "WIDTH",
-        "HEIGHT",
-        "ENTRY",
-        "EXIT",
-        "OUTPUT_FILE",
-        "PERFECT",
-        "SEED"}
-
-    with open(file_name) as file:
-        for line in file:
-            line = line.strip()
-
-            if not line or line.startswith("#"):
-                continue
-
-            if "=" not in line:
-                errors.append(f"Invalid line {line}")
-                continue
-
-            key, sep, value = line.partition("=")
-            key = key.strip()
-            value = value.strip()
-
-            if key in config:
-                errors.append(f"Duplicate key: {key}")
-            if key not in valid_keys:
-                errors.append(f"Unknown key: {key}")
-
-            config[key] = value
-
-    return config
+VALID_KEYS = {
+    "WIDTH",
+    "HEIGHT",
+    "ENTRY",
+    "EXIT",
+    "OUTPUT_FILE",
+    "PERFECT",
+    "SEED",
+}
 
 
-def width_parsing(config: dict) -> Optional[int]:
-    if "WIDTH" not in config:
-        errors.append("Missing WIDTH")
+def read_config(file_name: str) -> tuple[dict[str, str], list[str]]:
+    """Read raw key=value pairs from config file."""
+
+    config: dict[str, str] = {}
+    errors: list[str] = []
+
+    try:
+        with open(file_name, "r", encoding="utf-8") as file:
+            for line_number, raw_line in enumerate(file, start=1):
+                line = raw_line.strip()
+
+                if not line or line.startswith("#"):
+                    continue
+
+                if "=" not in line:
+                    errors.append(
+                        f"Ligne {line_number} invalide : '{line}' "
+                        f"(format attendu : KEY=value)"
+                    )
+                    continue
+
+                key, _, value = line.partition("=")
+                key = key.strip()
+                value = value.strip()
+
+                if not key:
+                    errors.append(f"Ligne {line_number} invalide : clé vide")
+                    continue
+
+                if key in config:
+                    errors.append(f"Clé dupliquée : {key}")
+                    continue
+
+                if key not in VALID_KEYS:
+                    errors.append(f"Clé inconnue : {key}")
+                    continue
+
+                if value == "":
+                    errors.append(f"Valeur vide pour la clé : {key}")
+                    continue
+
+                config[key] = value
+
+    except FileNotFoundError:
+        return {}, [f"Fichier de configuration introuvable : {file_name}"]
+
+    return config, errors
+
+
+def parse_positive_int(
+    config: dict[str, str],
+    key: str,
+    errors: list[str],
+) -> Optional[int]:
+    """Parse a strictly positive integer."""
+
+    if key not in config:
+        errors.append(f"Clé manquante : {key}")
         return None
 
     try:
-        width = int(config["WIDTH"])
+        value = int(config[key])
     except ValueError:
-        errors.append("WIDTH must be format WIDTH=x(int)")
+        errors.append(f"{key} doit être un entier")
         return None
 
-    if width <= 0:
-        errors.append("WIDTH must be > 0")
+    if value <= 0:
+        errors.append(f"{key} doit être > 0")
         return None
-    return width
+
+    return value
 
 
-def height_parsing(config: dict) -> Optional[int]:
-    if "HEIGHT" not in config:
-        errors.append("Missing HEIGHT")
+def parse_non_negative_int(
+    config: dict[str, str],
+    key: str,
+    errors: list[str],
+) -> Optional[int]:
+    """Parse a non-negative integer."""
+
+    if key not in config:
+        errors.append(f"Clé manquante : {key}")
         return None
 
     try:
-        height = int(config["HEIGHT"])
+        value = int(config[key])
     except ValueError:
-        errors.append("HEIGHT must be format HEIGHT=x(int)")
+        errors.append(f"{key} doit être un entier")
         return None
 
-    if height <= 0:
-        errors.append("HEIGHT must be > 0")
-    return height
-
-
-def entry_parsing(config: dict) -> Optional[tuple[int, int]]:
-    if "ENTRY" not in config:
-        errors.append("Missing ENTRY")
+    if value < 0:
+        errors.append(f"{key} doit être >= 0")
         return None
 
-    parts = config["ENTRY"].split(",")
+    return value
+
+
+def parse_coord(
+    config: dict[str, str],
+    key: str,
+    errors: list[str],
+) -> Optional[tuple[int, int]]:
+    """Parse coordinates formatted as x,y."""
+
+    if key not in config:
+        errors.append(f"Clé manquante : {key}")
+        return None
+
+    raw_value = config[key]
+    parts = raw_value.split(",")
 
     if len(parts) != 2:
-        errors.append("ENTRY must be format ENTRY=x(int), y(int)")
+        errors.append(f"{key} doit être au format x,y")
         return None
 
     try:
-        x = int(parts[0])
-        y = int(parts[1])
+        x = int(parts[0].strip())
+        y = int(parts[1].strip())
     except ValueError:
-        errors.append("ENTRY coordinates must be integers")
+        errors.append(f"{key} doit contenir deux entiers")
         return None
 
     if x < 0 or y < 0:
-        errors.append("ENTRY coordinates must be >= 0")
+        errors.append(f"{key} doit contenir des coordonnées >= 0")
         return None
 
-    return x, y
+    return (x, y)
 
 
-def exit_parsing(config: dict) -> Optional[tuple[int, int]]:
-    if "EXIT" not in config:
-        errors.append("Missing EXIT")
+def parse_output_file(
+    config: dict[str, str],
+    errors: list[str],
+) -> Optional[str]:
+    """Parse output file name."""
+
+    key = "OUTPUT_FILE"
+
+    if key not in config:
+        errors.append(f"Clé manquante : {key}")
         return None
 
-    parts = config["EXIT"].split(",")
-
-    if len(parts) != 2:
-        errors.append("EXIT must be format EXIT=x(int),y(int)")
-        return None
-
-    try:
-        x = int(parts[0])
-        y = int(parts[1])
-    except ValueError:
-        errors.append("EXIT coordinates must be integers")
-        return None
-
-    if x < 0 or y < 0:
-        errors.append("EXIT coordinates must be >= 0")
-        return None
-
-    return x, y
-
-
-def output_file_parsing(config: dict) -> Optional[Any]:
-    if "OUTPUT_FILE" not in config:
-        errors.append("Missing OUTPUT_FILE")
-        return None
-
-    output_file = config["OUTPUT_FILE"]
+    output_file = config[key].strip()
 
     if not output_file.endswith(".txt"):
-        errors.append("OUTPUT_FILE must be format OUTPUT_FILE=name.txt")
+        errors.append("OUTPUT_FILE doit se terminer par .txt")
         return None
 
-    name = output_file[:-4]
-    if not name:
-        errors.append("OUTPUT_FILE must contain a file name before .txt")
+    if output_file == ".txt":
+        errors.append("OUTPUT_FILE doit contenir un nom avant .txt")
         return None
 
     return output_file
 
 
-def perfect_parsing(config: dict) -> Optional[Any]:
-    if "PERFECT" not in config:
-        errors.append("Missing PERFECT")
+def parse_bool(
+    config: dict[str, str],
+    key: str,
+    errors: list[str],
+) -> Optional[bool]:
+    """Parse boolean written as True or False."""
+
+    if key not in config:
+        errors.append(f"Clé manquante : {key}")
         return None
 
-    perfect = config["PERFECT"]
+    value = config[key].strip()
 
-    if perfect not in ["True", "False"]:
-        errors.append("PERFECT must be format PERFECT=False or PERFECT=True")
-        return None
+    if value == "True":
+        return True
+    if value == "False":
+        return False
 
-    return perfect == "True"
-
-
-def seed_parsing(config: dict) -> Optional[int]:
-    if "SEED" not in config:
-        errors.append("Missing SEED")
-        return None
-
-    try:
-        seed = int(config["SEED"])
-    except ValueError:
-        errors.append("SEED must be format SEED=x(int)")
-        return None
-
-    if seed < 0:
-        errors.append("SEED must be >= 0")
-
-    return seed
+    errors.append(f"{key} doit valoir True ou False")
+    return None
 
 
-try:
-    config = read_config("config.txt")
-except FileNotFoundError:
-    print("Config file not found")
-    exit(1)
+def validate_coordinates(
+    width: Optional[int],
+    height: Optional[int],
+    entry: Optional[tuple[int, int]],
+    exit_pos: Optional[tuple[int, int]],
+    errors: list[str],
+) -> None:
+    """Validate ENTRY and EXIT positions against maze dimensions."""
 
-if not config:
-    errors.append("Config file is empty")
+    if width is None or height is None:
+        return
+
+    if entry is not None:
+        x, y = entry
+        if not (0 <= x < width and 0 <= y < height):
+            errors.append("ENTRY est en dehors du labyrinthe")
+
+    if exit_pos is not None:
+        x, y = exit_pos
+        if not (0 <= x < width and 0 <= y < height):
+            errors.append("EXIT est en dehors du labyrinthe")
+
+    if entry is not None and exit_pos is not None and entry == exit_pos:
+        errors.append("ENTRY et EXIT ne peuvent pas être identiques")
 
 
-width = width_parsing(config)
-height = height_parsing(config)
-entry = entry_parsing(config)
-exit_pos = exit_parsing(config)
-output_file = output_file_parsing(config)
-perfect = perfect_parsing(config)
-seed = seed_parsing(config)
+def load_config(file_name: str = "config.txt") -> dict:
+    """
+    Load, parse and validate config file.
 
-data: tuple[Any, Any, Any, Any, Any, Any, Any] = (
-    width, height, entry, exit_pos, output_file, perfect, seed)
+    Returns:
+        A dictionary containing validated config values.
 
+    Raises:
+        ValueError: If the config contains invalid or missing values.
+    """
 
-if entry is not None and width is not None and height is not None:
-    x, y = entry
-    if not (0 <= x < width and 0 <= y < height):
-        errors.append("ENTRY is outside the maze")
+    config, errors = read_config(file_name)
 
-if exit_pos is not None and width is not None and height is not None:
-    x, y = exit_pos
-    if not (0 <= x < width and 0 <= y < height):
-        errors.append("EXIT is outside the maze")
+    if not config and not errors:
+        errors.append("Le fichier de configuration est vide")
 
-if entry is not None and exit_pos is not None and entry == exit_pos:
-    errors.append("ENTRY and EXIT cannot be the same")
+    width = parse_positive_int(config, "WIDTH", errors)
+    height = parse_positive_int(config, "HEIGHT", errors)
+    entry = parse_coord(config, "ENTRY", errors)
+    exit_pos = parse_coord(config, "EXIT", errors)
+    output_file = parse_output_file(config, errors)
+    perfect = parse_bool(config, "PERFECT", errors)
+    seed = parse_non_negative_int(config, "SEED", errors)
 
-if errors:
-    for error in errors:
-        print(error)
-    exit(1)
+    validate_coordinates(width, height, entry, exit_pos, errors)
+
+    if errors:
+        raise ValueError("\n".join(errors))
+
+    return {
+        "width": width,
+        "height": height,
+        "entry": entry,
+        "exit": exit_pos,
+        "output_file": output_file,
+        "perfect": perfect,
+        "seed": seed,
+    }

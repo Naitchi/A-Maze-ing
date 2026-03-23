@@ -83,9 +83,9 @@ def dikjstra(maze, start, width, height):
     scores[i][j] = 0
 
     propagate_scores(maze, scores, i, j)
-    print(scores)
-    # print("Scores:")
-    # for line in scores:
-    #     print(line)
+    # print(scores)
+    # # print("Scores:")
+    # # for line in scores:
+    # #     print(line)
 
-    print("path: ", get_path(scores, (14, 14)))
+    # print("path: ", get_path(scores, (14, 14)))

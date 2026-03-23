@@ -3,10 +3,42 @@ import dikjstra
 
 Coord = tuple[int, int]
 Direction = tuple[int, int]
-Maze = list[list[int]]
 
 
-def print_maze(maze: Maze) -> None:
+class Maze:
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        seed: int | None,
+        entry: Coord,
+        exit_pos: Coord,
+        output_file: str,
+        perfect: bool,
+    ) -> None:
+        self.width = width
+        self.height = height
+        self.seed = seed
+        self.entry = entry
+        self.exit = exit_pos
+        self.output_file = output_file
+        self.perfect = perfect
+        self.grid: list[list[int]] = [
+            [15 for _ in range(width)] for _ in range(height)
+        ]
+        self.path: str = ""
+
+    def generate(self) -> None:
+        maze_generator(
+            self.width,
+            self.height,
+            self.entry,
+            self.seed,
+            self
+        )
+
+
+def print_maze(maze: list[list[int]]) -> None:
     """Print the maze as ASCII art."""
 
     for line in maze:
@@ -91,7 +123,7 @@ def build_fortytwo(height: int, width: int) -> list[Coord]:
     pattern_height = len(pattern)
     pattern_width = len(pattern[0])
     if height < pattern_height + 3 or width < pattern_width + 3:
-        return []  # TODO faut que je mette un message d'erreur pour ça
+        return []
 
     start_i = (height - pattern_height) // 2
     start_j = (width - pattern_width) // 2
@@ -105,7 +137,7 @@ def build_fortytwo(height: int, width: int) -> list[Coord]:
 
 
 def create_path(
-    maze: Maze,
+    maze: list[list[int]],
     in_linking: list[Coord],
     linked: list[Coord],
 ) -> None:
@@ -115,7 +147,8 @@ def create_path(
     while m < len(in_linking) - 1:
         case1 = in_linking[m]
         case2 = in_linking[m + 1]
-        linked.append(case1)
+        if case1 not in linked:
+            linked.append(case1)
         i, j = case1
         o, k = case2
         d_i = o - i
@@ -138,7 +171,7 @@ def create_path(
 def advance_path_step(
     i: int,
     j: int,
-    maze: Maze,
+    maze: list[list[int]],
     in_linking: list[Coord],
     linked: list[Coord],
     not_linked: list[Coord],
@@ -179,7 +212,7 @@ def advance_path_step(
 
 
 def draw_a_path(
-    maze: Maze,
+    maze: list[list[int]],
     not_linked: list[Coord],
     linked: list[Coord],
     fortytwo: list[Coord],
@@ -195,7 +228,8 @@ def draw_a_path(
 
     if (i, j) not in fortytwo and (i, j) not in linked:
         while True:
-            in_linking.append((i, j))
+            if (i, j) not in in_linking:
+                in_linking.append((i, j))
             if (
                 get_available_direction(
                     (i, j),
@@ -228,46 +262,59 @@ def maze_generator(
     height: int,
     start: Coord,
     seed: int | None = None,
-) -> None:
-    """Generate and print a maze with an optional centered 42 forbidden area.
-
-    Args:
-        width: Maze width in cells.
-        height: Maze height in cells.
-        start: Starting cell coordinates.
-        seed: Optional random seed.
-    """
-
-    maze = [[15 for _ in range(width)] for _ in range(height)]
+    maze_obj: Maze | None = None,
+) -> Maze:
+    """Generate and return a maze."""
 
     if seed is not None:
         random.seed(seed)
 
-    not_linked: list[Coord] = [
-        (i, j) for i in range(height) for j in range(width)
-    ]
-    linked: list[Coord] = []
-    fortytwo: list[Coord] = build_fortytwo(height, width)
+    if maze_obj is None:
+        maze_obj = Maze(
+            width,
+            height,
+            seed,
+            start,
+            (height - 1, width - 1),
+            "maze.txt",
+            True,
+        )
 
-    (a, b) = start
-    not_linked.remove((a, b))
-    linked.append((a, b))
+    maze = [[15 for _ in range(width)] for _ in range(height)]
+    not_linked = [(i, j) for i in range(height) for j in range(width)]
+    linked: list[Coord] = []
+    fortytwo = build_fortytwo(height, width)
+
+    if start in not_linked:
+        not_linked.remove(start)
+    linked.append(start)
 
     for case in fortytwo:
         if case in not_linked:
             not_linked.remove(case)
 
-    while len(not_linked):
-        draw_a_path(maze, not_linked, linked, fortytwo, height, width)
+    while len(not_linked) > 0:
+        draw_a_path(
+            maze,
+            not_linked,
+            linked,
+            fortytwo,
+            height,
+            width,
+        )
 
-    print_maze(maze)
+    maze_obj.grid = maze
 
-    print(maze)
-    dikjstra.dikjstra(maze, (0, 0), 15, 15)
+    scores = dikjstra.dikjstra(
+        maze_obj.grid,
+        maze_obj.entry,
+        maze_obj.width,
+        maze_obj.height,
+    )
 
-# TODO verifier que ca soit un maze perfect quand demander
-# TODO verifier que ca soit un maze imperfect quand demander
-# TODO s'assurer qu'il n'y a pas de 3x3 libre
+    if scores is not None:
+        maze_obj.path = dikjstra.get_path(scores, maze_obj.exit)
+    else:
+        maze_obj.path = ""
 
-
-maze_generator(15, 15, (0, 0), 42)
+    return maze_obj

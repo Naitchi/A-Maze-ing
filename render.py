@@ -17,7 +17,7 @@ class RenderConfig:
     def __init__(self):
         self.color = 0xFFFFFFFF
         self.ppc = 0
-        self.show_path = False
+        self.show_path = True
         self.entry_color = 0xFF00FF00
         self.exit_color = 0xFFFF0000
         self.path_color = 0xFF800080
@@ -258,13 +258,8 @@ class App:
             self.maze.output_file,
             self.maze.perfect
         )
-        self.maze.generatore()
+        self.maze.generate()
         self.renderer.maze = self.maze
-        self.renderer.get_ppc()
         self.m.mlx_clear_window(self.mlx_ptr, self.win)
-        self.renderer.draw_all()
         self.menu()
-
-
-if __name__ == '__main__':
-    App(Maze()).run()
+        self.renderer.draw_all()
