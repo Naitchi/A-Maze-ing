@@ -1,5 +1,5 @@
 import random
-import dikjstra
+from dikjstra import dikjstra
 
 Coord = tuple[int, int]
 Direction = tuple[int, int]
@@ -7,17 +7,26 @@ Maze = list[list[int]]
 
 
 class MazeGenerator:
-    def __init__(self, width, height, start, end, seed=None):
-        self.width = width
-        self.start = start
-        self.end = end
-        self.height = height
-        self.in_linking = []
-        self.not_linked = []
-        self.fortytwo = []
-        self.linked = []
-        self.maze = []
-        self.seed = seed
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        start: Coord,
+        end: Coord,
+        seed: int | None = None,
+    ) -> None:
+        self.width: int = width
+        self.start: Coord = start
+        self.end: Coord = end
+        self.height: int = height
+        self.in_linking: list[Coord] = []
+        self.not_linked: list[Coord] = []
+        self.fortytwo: list[Coord] = []
+        self.linked: list[Coord] = []
+        self.maze: Maze = [[15 for _ in range(width)] for _ in range(height)]
+        self.seed: int | None = seed
+        self.maze_generator()
+        self.path: str = dikjstra(self.maze, self.start, self.end)
 
     def get_available_direction(
         self,
@@ -71,15 +80,14 @@ class MazeGenerator:
             "0010111",
         ]
 
-        pattern_height = len(pattern)
-        pattern_width = len(pattern[0])
+        pattern_height: int = len(pattern)
+        pattern_width: int = len(pattern[0])
         if self.height < pattern_height + 3 or self.width < pattern_width + 3:
             print("Impossible d'imprimer un 42 au milieu du maze")
-            # TODO francais fine ou pas ?
             return []
 
-        start_i = (self.height - pattern_height) // 2
-        start_j = (self.width - pattern_width) // 2
+        start_i: int = (self.height - pattern_height) // 2
+        start_j: int = (self.width - pattern_width) // 2
         blocked: list[Coord] = []
 
         for d_i, row in enumerate(pattern):
@@ -91,7 +99,7 @@ class MazeGenerator:
     def create_path(self) -> None:
         """Carve passages along a temporary path and merge it into linked."""
 
-        m = 0
+        m: int = 0
         while m < len(self.in_linking) - 1:
             case1 = self.in_linking[m]
             case2 = self.in_linking[m + 1]
@@ -140,6 +148,128 @@ class MazeGenerator:
 
         return i, j, False
 
+    def wall_bits_between(
+        self,
+        case1: Coord,
+        case2: Coord,
+    ) -> tuple[int, int] | None:
+        """Return wall bits for two orthogonal adjacent cells."""
+
+        i, j = case1
+        o, k = case2
+        direction_to_bits: dict[Direction, tuple[int, int]] = {
+            (0, 1): (1, 3),
+            (0, -1): (3, 1),
+            (1, 0): (2, 0),
+            (-1, 0): (0, 2),
+        }
+        return direction_to_bits.get((o - i, k - j))
+
+    def remove_wall_between(self, case1: Coord, case2: Coord) -> bool:
+        """Remove the shared wall if it exists and cells are adjacent."""
+
+        bits = self.wall_bits_between(case1, case2)
+        if bits is None:
+            return False
+
+        i, j = case1
+        o, k = case2
+        bit_1, bit_2 = bits
+        if not (self.maze[i][j] & (1 << bit_1)):
+            return False
+
+        self.maze[i][j] &= ~(1 << bit_1)
+        self.maze[o][k] &= ~(1 << bit_2)
+        return True
+
+    def is_open_3x3_at(self, top_i: int, top_j: int) -> bool:
+        """Return True if the 3x3 block at top-left is fully opened."""
+
+        right_open = all(
+            not (self.maze[i][j] & (1 << 1))
+            for i in range(top_i, top_i + 3)
+            for j in range(top_j, top_j + 2)
+        )
+        down_open = all(
+            not (self.maze[i][j] & (1 << 2))
+            for i in range(top_i, top_i + 2)
+            for j in range(top_j, top_j + 3)
+        )
+        return right_open and down_open
+
+    def has_open_3x3_space(self) -> bool:
+        """Return True if at least one fully open 3x3 block exists."""
+
+        return any(
+            self.is_open_3x3_at(top_i, top_j)
+            for top_i in range(self.height - 2)
+            for top_j in range(self.width - 2)
+        )
+
+    def can_remove_wall_without_3x3(self, case1: Coord, case2: Coord) -> bool:
+        """Check if wall removal would avoid creating an open 3x3."""
+
+        i, j = case1
+        o, k = case2
+        old_case1 = self.maze[i][j]
+        old_case2 = self.maze[o][k]
+
+        if not self.remove_wall_between(case1, case2):
+            return False
+
+        creates_3x3 = self.has_open_3x3_space()
+        self.maze[i][j] = old_case1
+        self.maze[o][k] = old_case2
+        return not creates_3x3
+
+    def is_inner_non_fortytwo(self, case: Coord) -> bool:
+        """Return True if case is inside borders and outside fortytwo."""
+
+        i, j = case
+        return (
+            0 < i < self.height - 1
+            and 0 < j < self.width - 1
+            and case not in self.fortytwo
+        )
+
+    def get_inner_wall_candidates(self) -> list[tuple[Coord, Coord]]:
+        """List unique interior neighboring pairs eligible for removal."""
+
+        candidates: list[tuple[Coord, Coord]] = []
+        for i in range(1, self.height - 1):
+            for j in range(1, self.width - 1):
+                case1 = (i, j)
+                if not self._is_inner_non_fortytwo(case1):
+                    continue
+
+                for case2 in ((i, j + 1), (i + 1, j)):
+                    if self._is_inner_non_fortytwo(case2):
+                        candidates.append((case1, case2))
+
+        return candidates
+
+    def remove_random_inner_walls(self, wall_count: int) -> int:
+        """Remove random interior walls without fortytwo and open 3x3."""
+
+        if wall_count <= 0:
+            return 0
+
+        candidates = self.get_inner_wall_candidates()
+        random.shuffle(candidates)
+
+        removed = 0
+        for case1, case2 in candidates:
+            if removed >= wall_count:
+                break
+
+            if not self.can_remove_wall_without_3x3(case1, case2):
+                continue
+
+            if self.remove_wall_between(case1, case2):
+                removed += 1
+
+        return removed
+
     def draw_a_path(self) -> None:
         """Draw and connect a random path from an unlinked cell."""
 
@@ -173,8 +303,6 @@ class MazeGenerator:
             seed: Optional random seed.
         """
 
-        maze = [[15 for _ in range(self.width)] for _ in range(self.height)]
-
         if self.seed is not None:
             random.seed(self.seed)
 
@@ -195,41 +323,7 @@ class MazeGenerator:
         while len(self.not_linked):
             self.draw_a_path()
 
-        print_maze(maze)
-
-        print(maze)
-        dikjstra.dikjstra(maze, (0, 0), (149, 149))
-
-# TODO verifier que ca soit un maze perfect quand demander
-# TODO verifier que ca soit un maze imperfect quand demander
-# TODO s'assurer qu'il n'y a pas de 3x3 libre
+        print(self.maze)
 
 
 maze_generator = MazeGenerator(30, 30, (0, 0), (29, 29))
-maze_generator.maze_generator()
-
-
-def print_maze(maze: Maze) -> None:
-    """Print the maze as ASCII art."""
-
-    for line in maze:
-        top = ""
-        middle = ""
-        bottom = ""
-
-        for case in line:
-            haut = (case >> 0) & 1
-            droite = (case >> 1) & 1
-            bas = (case >> 2) & 1
-            gauche = (case >> 3) & 1
-
-            top += " --- " if haut else "     "
-            middle += "|" if gauche else " "
-            middle += "   "
-            middle += "|" if droite else " "
-            bottom += " --- " if bas else "     "
-        print(top)
-        print(middle)
-        print(bottom)
-
-# TODO mettre tout dans une classe
