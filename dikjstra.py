@@ -1,4 +1,18 @@
-def can_move(maze, i, j, o, k, d_i, d_j):
+Coord = tuple[int, int]
+Direction = tuple[int, int]
+Maze = list[list[int]]
+ScoreGrid = list[list[int]]
+
+
+def can_move(
+    maze: Maze,
+    i: int,
+    j: int,
+    o: int,
+    k: int,
+    d_i: int,
+    d_j: int,
+) -> bool:
     current_cell = maze[i][j]
     next_cell = maze[o][k]
 
@@ -13,7 +27,7 @@ def can_move(maze, i, j, o, k, d_i, d_j):
     return False
 
 
-def propagate_scores(maze, scores, i, j):
+def propagate_scores(maze: Maze, scores: ScoreGrid, i: int, j: int) -> None:
     height = len(maze)
     width = len(maze[0]) if height else 0
 
@@ -31,7 +45,7 @@ def propagate_scores(maze, scores, i, j):
                 propagate_scores(maze, scores, o, k)
 
 
-def get_path(maze, scores, end) -> str:
+def get_path(maze: Maze, scores: ScoreGrid, end: Coord) -> str:
     height = len(scores)
     width = len(scores[0]) if height else 0
 
@@ -45,9 +59,9 @@ def get_path(maze, scores, end) -> str:
     if cur_score == 0:
         return ""
 
-    path = []
+    path: list[str] = []
     while cur_score > 0:
-        found = False
+        found: bool = False
         for d_i, d_j in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
             ni = ci + d_i
             nj = cj + d_j
@@ -81,7 +95,7 @@ def get_path(maze, scores, end) -> str:
     return ''.join(path)
 
 
-def dikjstra(maze, start, end):
+def dikjstra(maze: Maze, start: Coord, end: Coord) -> str:
     """Compute distance scores from `start` over `maze`.
 
     Width and height are derived from `maze` to avoid mismatches that
@@ -90,7 +104,7 @@ def dikjstra(maze, start, end):
     height = len(maze)
     width = len(maze[0]) if height else 0
 
-    scores = [[-1 for _ in range(width)] for _ in range(height)]
+    scores: ScoreGrid = [[-1 for _ in range(width)] for _ in range(height)]
 
     i, j = start
     if not (0 <= i < height and 0 <= j < width):
@@ -100,4 +114,4 @@ def dikjstra(maze, start, end):
 
     propagate_scores(maze, scores, i, j)
 
-    print("path:", get_path(maze, scores, end))
+    return get_path(maze, scores, end)
