@@ -5,6 +5,7 @@ Coord = tuple[int, int]
 Direction = tuple[int, int]
 Maze = list[[int]]
 
+
 class MazeGenerator:
     def __init__(
         self,
@@ -12,15 +13,17 @@ class MazeGenerator:
         height: int,
         start: Coord,
         end: Coord,
-        output_file: str, # TODO utile ca ? 
+        output_file: str,
         perfect: bool,
         seed: int | None = None,
     ) -> None:
         self.width: int = width
         self.height: int = height
         self.start: Coord = start
+        print(self.start)
         self.end: Coord = end
-        self.output_file = output_file # TODO utile ca ? 
+        print(self.end)
+        self.output_file = output_file
         self.perfect = perfect
         self.seed: int | None = seed
         self.in_linking: list[Coord] = []
@@ -242,11 +245,11 @@ class MazeGenerator:
         for i in range(1, self.height - 1):
             for j in range(1, self.width - 1):
                 case1 = (i, j)
-                if not self._is_inner_non_fortytwo(case1):
+                if not self.is_inner_non_fortytwo(case1):
                     continue
 
                 for case2 in ((i, j + 1), (i + 1, j)):
-                    if self._is_inner_non_fortytwo(case2):
+                    if self.is_inner_non_fortytwo(case2):
                         candidates.append((case1, case2))
 
         return candidates
@@ -294,6 +297,12 @@ class MazeGenerator:
                     if is_path_connected:
                         return
 
+    def parsing_start_end_in_forty_two(self):
+        print(self.fortytwo)
+        print(self.start)
+        if self.start in self.fortytwo or self.end in self.fortytwo:
+            print("error")
+
     def maze_generator(self) -> None:
         """
         Generate and print a maze with an centered 42 forbidden area if
@@ -314,6 +323,7 @@ class MazeGenerator:
         ]
         self.linked: list[Coord] = []
         self.fortytwo: list[Coord] = self.build_fortytwo()
+        self.parsing_start_end_in_forty_two()
 
         (a, b) = self.start
         self.not_linked.remove((a, b))
@@ -325,3 +335,6 @@ class MazeGenerator:
 
         while len(self.not_linked):
             self.draw_a_path()
+
+        if not self.perfect:
+            self.remove_random_inner_walls((self.width * self.height) / 10)
