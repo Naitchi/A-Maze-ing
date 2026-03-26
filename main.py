@@ -1,21 +1,20 @@
 from parsing_config import load_config
-from maze_generator import Maze
+from maze_generator import MazeGenerator
 from render import App
 
 
 def main():
     config = load_config("config.txt")
 
-    maze = Maze(
+    maze = MazeGenerator(
         config["width"],
         config["height"],
-        config["seed"],
         config["entry"],
         config["exit"],
         config["output_file"],
         config["perfect"],
+        config["seed"],
     )
-    maze.generate()
 
     app = App(maze)
     app.run()

@@ -1,4 +1,4 @@
-from maze_generator import Maze
+from maze_generator import MazeGenerator
 from typing import Any
 from mlx import Mlx
 
@@ -46,7 +46,7 @@ class Create_Img:
                  mlx_ptr: Any,
                  window: Any,
                  img: ImgData,
-                 maze: Maze,
+                 maze: MazeGenerator,
                  render_config_data: RenderConfig) -> None:
         self.mlx = mlx
         self.mlx_ptr = mlx_ptr
@@ -113,7 +113,7 @@ class Create_Img:
     def print_maze(self):
         for row in range(self.maze.height):
             for col in range(self.maze.width):
-                value = self.maze.grid[row][col]
+                value = self.maze.maze[row][col]
                 if value == 15:
                     self.render_cell(
                         col, row, self.render_config_data.color)
@@ -124,7 +124,7 @@ class Create_Img:
     def render_path(self):
         if not self.render_config_data.show_path:
             return
-        x, y = self.maze.entry
+        x, y = self.maze.start
         for direction in self.maze.path[:-1]:
             x, y = self.next_direction(direction, (x, y))
             if 0 <= x < self.maze.width and 0 <= y < self.maze.height:
@@ -153,13 +153,13 @@ class Create_Img:
         )
 
     def draw_entry_exit(self) -> None:
-        entry_y, entry_x = self.maze.entry
+        entry_y, entry_x = self.maze.start
         self.render_cell(
             entry_y,
             entry_x,
             self.render_config_data.entry_color)
 
-        exit_y, exit_x = self.maze.exit
+        exit_y, exit_x = self.maze.end
         self.render_cell(
             exit_y,
             exit_x,
@@ -249,16 +249,14 @@ class App:
         self.renderer.draw_all()
 
     def regenerate(self):
-        self.maze = Maze(
+        self.maze = MazeGenerator(
             self.maze.width,
             self.maze.height,
-            None,
-            self.maze.entry,
-            self.maze.exit,
+            self.maze.start,
+            self.maze.end,
             self.maze.output_file,
             self.maze.perfect
         )
-        self.maze.generate()
         self.renderer.maze = self.maze
         self.m.mlx_clear_window(self.mlx_ptr, self.win)
         self.menu()
