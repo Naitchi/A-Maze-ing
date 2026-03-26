@@ -3,7 +3,6 @@ from dikjstra import dikjstra
 
 Coord = tuple[int, int]
 Direction = tuple[int, int]
-Maze = list[list[int]]
 
 
 class MazeGenerator:
@@ -325,5 +324,9 @@ class MazeGenerator:
 
         print(self.maze)
 
+    if scores is not None:
+        maze_obj.path = dikjstra.get_path(scores, maze_obj.exit)
+    else:
+        maze_obj.path = ""
 
-maze_generator = MazeGenerator(30, 30, (0, 0), (29, 29))
+    return maze_obj
