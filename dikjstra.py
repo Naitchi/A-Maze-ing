@@ -6,85 +6,85 @@ ScoreGrid = list[list[int]]
 
 def can_move(
     maze: Maze,
-    i: int,
-    j: int,
-    o: int,
-    k: int,
-    d_i: int,
-    d_j: int,
+    x: int,
+    y: int,
+    nx: int,
+    ny: int,
+    d_x: int,
+    d_y: int,
 ) -> bool:
-    current_cell = maze[i][j]
-    next_cell = maze[o][k]
+    current_cell = maze[y][x]
+    next_cell = maze[ny][nx]
 
-    if d_i == 0 and d_j == 1:
+    if d_x == 1 and d_y == 0:
         return ((current_cell >> 1) & 1) == 0 and ((next_cell >> 3) & 1) == 0
-    if d_i == 0 and d_j == -1:
+    if d_x == -1 and d_y == 0:
         return ((current_cell >> 3) & 1) == 0 and ((next_cell >> 1) & 1) == 0
-    if d_i == 1 and d_j == 0:
+    if d_x == 0 and d_y == 1:
         return ((current_cell >> 2) & 1) == 0 and ((next_cell >> 0) & 1) == 0
-    if d_i == -1 and d_j == 0:
+    if d_x == 0 and d_y == -1:
         return ((current_cell >> 0) & 1) == 0 and ((next_cell >> 2) & 1) == 0
     return False
 
 
-def propagate_scores(maze: Maze, scores: ScoreGrid, i: int, j: int) -> None:
+def propagate_scores(maze: Maze, scores: ScoreGrid, x: int, y: int) -> None:
     height = len(maze)
     width = len(maze[0]) if height else 0
 
-    for d_i, d_j in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
-        o = i + d_i
-        k = j + d_j
+    for d_x, d_y in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+        nx = x + d_x
+        ny = y + d_y
         if (
-            0 <= o < height
-            and 0 <= k < width
-            and can_move(maze, i, j, o, k, d_i, d_j)
+            0 <= nx < width
+            and 0 <= ny < height
+            and can_move(maze, x, y, nx, ny, d_x, d_y)
         ):
-            new_score = scores[i][j] + 1
-            if scores[o][k] == -1 or new_score < scores[o][k]:
-                scores[o][k] = new_score
-                propagate_scores(maze, scores, o, k)
+            new_score = scores[y][x] + 1
+            if scores[ny][nx] == -1 or new_score < scores[ny][nx]:
+                scores[ny][nx] = new_score
+                propagate_scores(maze, scores, nx, ny)
 
 
 def get_path(maze: Maze, scores: ScoreGrid, end: Coord) -> str:
     height = len(scores)
     width = len(scores[0]) if height else 0
 
-    ci, cj = end
-    if not (0 <= ci < height and 0 <= cj < width):
+    cx, cy = end
+    if not (0 <= cx < width and 0 <= cy < height):
         return ""
-    if scores[ci][cj] == -1:
+    if scores[cy][cx] == -1:
         return ""
 
-    cur_score = scores[ci][cj]
+    cur_score = scores[cy][cx]
     if cur_score == 0:
         return ""
 
     path: list[str] = []
     while cur_score > 0:
         found: bool = False
-        for d_i, d_j in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
-            ni = ci + d_i
-            nj = cj + d_j
-            if 0 <= ni < height and 0 <= nj < width:
-                if scores[ni][nj] == cur_score - 1:
-                    md_i = ci - ni
-                    md_j = cj - nj
-                    if not can_move(maze, ni, nj, ci, cj, md_i, md_j):
+        for d_x, d_y in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+            nx = cx + d_x
+            ny = cy + d_y
+            if 0 <= nx < width and 0 <= ny < height:
+                if scores[ny][nx] == cur_score - 1:
+                    md_x = cx - nx
+                    md_y = cy - ny
+                    if not can_move(maze, nx, ny, cx, cy, md_x, md_y):
                         continue
-                    move_i = ci - ni
-                    move_j = cj - nj
-                    if move_i == -1 and move_j == 0:
-                        dir_char = 'N'
-                    elif move_i == 1 and move_j == 0:
-                        dir_char = 'S'
-                    elif move_i == 0 and move_j == 1:
+                    move_x = cx - nx
+                    move_y = cy - ny
+                    if move_x == 1 and move_y == 0:
                         dir_char = 'E'
-                    elif move_i == 0 and move_j == -1:
+                    elif move_x == -1 and move_y == 0:
                         dir_char = 'W'
+                    elif move_x == 0 and move_y == 1:
+                        dir_char = 'S'
+                    elif move_x == 0 and move_y == -1:
+                        dir_char = 'N'
                     else:
                         return ""
                     path.append(dir_char)
-                    ci, cj = ni, nj
+                    cx, cy = nx, ny
                     cur_score -= 1
                     found = True
                     break
@@ -106,12 +106,12 @@ def dikjstra(maze: Maze, start: Coord, end: Coord) -> str:
 
     scores: ScoreGrid = [[-1 for _ in range(width)] for _ in range(height)]
 
-    i, j = start
-    if not (0 <= i < height and 0 <= j < width):
+    x, y = start
+    if not (0 <= x < width and 0 <= y < height):
         raise IndexError(f"start {start} out of maze bounds {(height, width)}")
 
-    scores[i][j] = 0
+    scores[y][x] = 0
 
-    propagate_scores(maze, scores, i, j)
+    propagate_scores(maze, scores, x, y)
 
     return get_path(maze, scores, end)

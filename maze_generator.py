@@ -20,9 +20,7 @@ class MazeGenerator:
         self.width: int = width
         self.height: int = height
         self.start: Coord = start
-        print(self.start)
         self.end: Coord = end
-        print(self.end)
         self.output_file = output_file
         self.perfect = perfect
         self.seed: int | None = seed
@@ -49,20 +47,20 @@ class MazeGenerator:
             A list of valid directions, or None if none are possible.
         """
 
-        i, j = old_coord
+        x, y = old_coord
         directions: list[Direction] = []
-        for d_i, d_j in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
-            o = i + d_i
-            k = j + d_j
+        for d_x, d_y in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+            o = x + d_x
+            k = y + d_y
             if (
                 o >= 0
-                and o < self.height
+                and o < self.width
                 and k >= 0
-                and k < self.width
+                and k < self.height
                 and (o, k) not in self.fortytwo
                 and (o, k) not in self.in_linking
             ):
-                directions.append((d_i, d_j))
+                directions.append((d_x, d_y))
         if len(directions) == 0:
             return None
         return directions
@@ -92,14 +90,14 @@ class MazeGenerator:
             print("Impossible d'imprimer un 42 au milieu du maze")
             return []
 
-        start_i: int = (self.height - pattern_height) // 2
-        start_j: int = (self.width - pattern_width) // 2
+        start_x: int = (self.width - pattern_width) // 2
+        start_y: int = (self.height - pattern_height) // 2
         blocked: list[Coord] = []
 
-        for d_i, row in enumerate(pattern):
-            for d_j, pixel in enumerate(row):
+        for d_y, row in enumerate(pattern):
+            for d_x, pixel in enumerate(row):
                 if pixel == "1":
-                    blocked.append((start_i + d_i, start_j + d_j))
+                    blocked.append((start_x + d_x, start_y + d_y))
         return blocked
 
     def create_path(self) -> None:
@@ -110,49 +108,49 @@ class MazeGenerator:
             case1 = self.in_linking[m]
             case2 = self.in_linking[m + 1]
             self.linked.append(case1)
-            i, j = case1
+            x, y = case1
             o, k = case2
-            d_i = o - i
-            d_j = k - j
-            if d_i == 0 and d_j == 1:
-                self.maze[i][j] &= ~(1 << 1)
-                self.maze[o][k] &= ~(1 << 3)
-            elif d_i == 0 and d_j == -1:
-                self.maze[i][j] &= ~(1 << 3)
-                self.maze[o][k] &= ~(1 << 1)
-            elif d_i == 1 and d_j == 0:
-                self.maze[i][j] &= ~(1 << 2)
-                self.maze[o][k] &= ~(1 << 0)
-            elif d_i == -1 and d_j == 0:
-                self.maze[i][j] &= ~(1 << 0)
-                self.maze[o][k] &= ~(1 << 2)
+            d_x = o - x
+            d_y = k - y
+            if d_x == 1 and d_y == 0:
+                self.maze[y][x] &= ~(1 << 1)
+                self.maze[k][o] &= ~(1 << 3)
+            elif d_x == -1 and d_y == 0:
+                self.maze[y][x] &= ~(1 << 3)
+                self.maze[k][o] &= ~(1 << 1)
+            elif d_x == 0 and d_y == 1:
+                self.maze[y][x] &= ~(1 << 2)
+                self.maze[k][o] &= ~(1 << 0)
+            elif d_x == 0 and d_y == -1:
+                self.maze[y][x] &= ~(1 << 0)
+                self.maze[k][o] &= ~(1 << 2)
             m += 1
 
-    def advance_path_step(self, i: int, j: int) -> tuple[int, int, bool]:
+    def advance_path_step(self, x: int, y: int) -> tuple[int, int, bool]:
         """Advance one random step and connect path if it reaches linked.
 
         Returns:
             New row, new column, and whether the path got connected.
         """
 
-        directions = self.get_available_direction((i, j))
+        directions = self.get_available_direction((x, y))
         if directions is None:
-            return i, j, False
+            return x, y, False
 
-        d_i, d_j = random.choice(directions)
-        i += d_i
-        j += d_j
+        d_x, d_y = random.choice(directions)
+        x += d_x
+        y += d_y
 
-        if (i, j) in self.linked:
-            self.in_linking.append((i, j))
+        if (x, y) in self.linked:
+            self.in_linking.append((x, y))
             self.create_path()
             for case in self.in_linking[:-1]:
                 if case in self.not_linked:
                     self.not_linked.remove(case)
             self.in_linking.clear()
-            return i, j, True
+            return x, y, True
 
-        return i, j, False
+        return x, y, False
 
     def wall_bits_between(
         self,
@@ -161,15 +159,15 @@ class MazeGenerator:
     ) -> tuple[int, int] | None:
         """Return wall bits for two orthogonal adjacent cells."""
 
-        i, j = case1
+        x, y = case1
         o, k = case2
         direction_to_bits: dict[Direction, tuple[int, int]] = {
-            (0, 1): (1, 3),
-            (0, -1): (3, 1),
-            (1, 0): (2, 0),
-            (-1, 0): (0, 2),
+            (1, 0): (1, 3),
+            (-1, 0): (3, 1),
+            (0, 1): (2, 0),
+            (0, -1): (0, 2),
         }
-        return direction_to_bits.get((o - i, k - j))
+        return direction_to_bits.get((o - x, k - y))
 
     def remove_wall_between(self, case1: Coord, case2: Coord) -> bool:
         """Remove the shared wall if it exists and cells are adjacent."""
@@ -178,28 +176,28 @@ class MazeGenerator:
         if bits is None:
             return False
 
-        i, j = case1
+        x, y = case1
         o, k = case2
         bit_1, bit_2 = bits
-        if not (self.maze[i][j] & (1 << bit_1)):
+        if not (self.maze[y][x] & (1 << bit_1)):
             return False
 
-        self.maze[i][j] &= ~(1 << bit_1)
-        self.maze[o][k] &= ~(1 << bit_2)
+        self.maze[y][x] &= ~(1 << bit_1)
+        self.maze[k][o] &= ~(1 << bit_2)
         return True
 
-    def is_open_3x3_at(self, top_i: int, top_j: int) -> bool:
+    def is_open_3x3_at(self, top_x: int, top_y: int) -> bool:
         """Return True if the 3x3 block at top-left is fully opened."""
 
         right_open = all(
-            not (self.maze[i][j] & (1 << 1))
-            for i in range(top_i, top_i + 3)
-            for j in range(top_j, top_j + 2)
+            not (self.maze[y][x] & (1 << 1))
+            for y in range(top_y, top_y + 3)
+            for x in range(top_x, top_x + 2)
         )
         down_open = all(
-            not (self.maze[i][j] & (1 << 2))
-            for i in range(top_i, top_i + 2)
-            for j in range(top_j, top_j + 3)
+            not (self.maze[y][x] & (1 << 2))
+            for y in range(top_y, top_y + 2)
+            for x in range(top_x, top_x + 3)
         )
         return right_open and down_open
 
@@ -207,34 +205,34 @@ class MazeGenerator:
         """Return True if at least one fully open 3x3 block exists."""
 
         return any(
-            self.is_open_3x3_at(top_i, top_j)
-            for top_i in range(self.height - 2)
-            for top_j in range(self.width - 2)
+            self.is_open_3x3_at(top_x, top_y)
+            for top_y in range(self.height - 2)
+            for top_x in range(self.width - 2)
         )
 
     def can_remove_wall_without_3x3(self, case1: Coord, case2: Coord) -> bool:
         """Check if wall removal would avoid creating an open 3x3."""
 
-        i, j = case1
+        x, y = case1
         o, k = case2
-        old_case1 = self.maze[i][j]
-        old_case2 = self.maze[o][k]
+        old_case1 = self.maze[y][x]
+        old_case2 = self.maze[k][o]
 
         if not self.remove_wall_between(case1, case2):
             return False
 
         creates_3x3 = self.has_open_3x3_space()
-        self.maze[i][j] = old_case1
-        self.maze[o][k] = old_case2
+        self.maze[y][x] = old_case1
+        self.maze[k][o] = old_case2
         return not creates_3x3
 
     def is_inner_non_fortytwo(self, case: Coord) -> bool:
         """Return True if case is inside borders and outside fortytwo."""
 
-        i, j = case
+        x, y = case
         return (
-            0 < i < self.height - 1
-            and 0 < j < self.width - 1
+            0 < x < self.width - 1
+            and 0 < y < self.height - 1
             and case not in self.fortytwo
         )
 
@@ -242,13 +240,13 @@ class MazeGenerator:
         """List unique interior neighboring pairs eligible for removal."""
 
         candidates: list[tuple[Coord, Coord]] = []
-        for i in range(1, self.height - 1):
-            for j in range(1, self.width - 1):
-                case1 = (i, j)
+        for y in range(1, self.height - 1):
+            for x in range(1, self.width - 1):
+                case1 = (x, y)
                 if not self.is_inner_non_fortytwo(case1):
                     continue
 
-                for case2 in ((i, j + 1), (i + 1, j)):
+                for case2 in ((x + 1, y), (x, y + 1)):
                     if self.is_inner_non_fortytwo(case2):
                         candidates.append((case1, case2))
 
@@ -281,28 +279,26 @@ class MazeGenerator:
 
         self.in_linking = []
 
-        i = random.randint(0, self.height - 1)
-        j = random.randint(0, self.width - 1)
+        x = random.randint(0, self.width - 1)
+        y = random.randint(0, self.height - 1)
 
-        if (i, j) not in self.fortytwo and (i, j) not in self.linked:
+        if (x, y) not in self.fortytwo and (x, y) not in self.linked:
             while True:
-                self.in_linking.append((i, j))
+                self.in_linking.append((x, y))
                 if (
-                    self.get_available_direction((i, j))
+                    self.get_available_direction((x, y))
                     is None
                 ):
                     return
                 else:
-                    i, j, is_path_connected = self.advance_path_step(i, j)
+                    x, y, is_path_connected = self.advance_path_step(x, y)
                     if is_path_connected:
                         return
 
     def parsing_start_end_in_forty_two(self):
-        print(self.fortytwo)
-        print(self.start)
         if self.start in self.fortytwo or self.end in self.fortytwo:
-            print("error")
-
+            raise ValueError("Error Start or End in 42 logo\n")
+        
     def maze_generator(self) -> None:
         """
         Generate and print a maze with an centered 42 forbidden area if
@@ -319,11 +315,15 @@ class MazeGenerator:
             random.seed(self.seed)
 
         self.not_linked: list[Coord] = [
-            (i, j) for i in range(self.height) for j in range(self.width)
+            (x, y) for y in range(self.height) for x in range(self.width)
         ]
         self.linked: list[Coord] = []
         self.fortytwo: list[Coord] = self.build_fortytwo()
-        self.parsing_start_end_in_forty_two()
+        try:
+            self.parsing_start_end_in_forty_two()
+        except ValueError as e:
+            print(e)
+            exit()
 
         (a, b) = self.start
         self.not_linked.remove((a, b))
