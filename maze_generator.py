@@ -3,7 +3,7 @@ from dikjstra import dikjstra
 
 Coord = tuple[int, int]
 Direction = tuple[int, int]
-Maze = list[[int]]
+Maze = list[list[int]]
 
 
 class MazeGenerator:
