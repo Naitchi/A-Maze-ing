@@ -31,6 +31,7 @@ class MazeGenerator:
         self.maze: Maze = [[15 for _ in range(width)] for _ in range(height)]
         self.maze_generator()
         self.path: str = dikjstra(self.maze, self.start, self.end)
+        self.write_maze_to_file()
 
     def get_available_direction(
         self,
@@ -298,7 +299,7 @@ class MazeGenerator:
     def parsing_start_end_in_forty_two(self):
         if self.start in self.fortytwo or self.end in self.fortytwo:
             raise ValueError("Error Start or End in 42 logo\n")
-        
+
     def maze_generator(self) -> None:
         """
         Generate and print a maze with an centered 42 forbidden area if
@@ -338,3 +339,13 @@ class MazeGenerator:
 
         if not self.perfect:
             self.remove_random_inner_walls((self.width * self.height) / 10)
+
+    def write_maze_to_file(self) -> None:
+        with open(self.output_file, "w") as f:
+            for row in self.maze:
+                line = "".join(format(cell, "X") for cell in row)
+                f.write(line + "\n")
+            f.write("\n")
+            f.write(f"{self.start[0]},{self.start[1]}\n")
+            f.write(f"{self.end[0]},{self.end[1]}\n")
+            f.write(self.path + "\n")

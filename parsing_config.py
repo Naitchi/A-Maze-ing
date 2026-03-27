@@ -28,8 +28,8 @@ def read_config(file_name: str) -> tuple[dict[str, str], list[str]]:
 
                 if "=" not in line:
                     errors.append(
-                        f"Ligne {line_number} invalide : '{line}' "
-                        f"(format attendu : KEY=value)"
+                        f"Line {line_number} is invalid: '{line}' "
+                        f"(expected format: KEY=value)"
                     )
                     continue
 
@@ -38,25 +38,25 @@ def read_config(file_name: str) -> tuple[dict[str, str], list[str]]:
                 value = value.strip()
 
                 if not key:
-                    errors.append(f"Ligne {line_number} invalide : clé vide")
+                    errors.append(f"Line {line_number} is invalid: empty key")
                     continue
 
                 if key in config:
-                    errors.append(f"Clé dupliquée : {key}")
+                    errors.append(f"Duplicate key: {key}")
                     continue
 
                 if key not in VALID_KEYS:
-                    errors.append(f"Clé inconnue : {key}")
+                    errors.append(f"Unknown key: {key}")
                     continue
 
                 if value == "":
-                    errors.append(f"Valeur vide pour la clé : {key}")
+                    errors.append(f"Empty value for key: {key}")
                     continue
 
                 config[key] = value
 
     except FileNotFoundError:
-        return {}, [f"Fichier de configuration introuvable : {file_name}"]
+        return {}, [f"Configuration file not found: {file_name}"]
 
     return config, errors
 
@@ -69,17 +69,17 @@ def parse_positive_int(
     """Parse a strictly positive integer."""
 
     if key not in config:
-        errors.append(f"Clé manquante : {key}")
+        errors.append(f"Missing key: {key}")
         return None
 
     try:
         value = int(config[key])
     except ValueError:
-        errors.append(f"{key} doit être un entier")
+        errors.append(f"{key} must be an integer")
         return None
 
     if value <= 0:
-        errors.append(f"{key} doit être > 0")
+        errors.append(f"{key} must be > 0")
         return None
 
     return value
@@ -93,17 +93,17 @@ def parse_non_negative_int(
     """Parse a non-negative integer."""
 
     if key not in config:
-        errors.append(f"Clé manquante : {key}")
+        errors.append(f"Missing key: {key}")
         return None
 
     try:
         value = int(config[key])
     except ValueError:
-        errors.append(f"{key} doit être un entier")
+        errors.append(f"{key} must be an integer")
         return None
 
     if value < 0:
-        errors.append(f"{key} doit être >= 0")
+        errors.append(f"{key} must be >= 0")
         return None
 
     return value
@@ -117,25 +117,25 @@ def parse_coord(
     """Parse coordinates formatted as x,y."""
 
     if key not in config:
-        errors.append(f"Clé manquante : {key}")
+        errors.append(f"Missing key: {key}")
         return None
 
     raw_value = config[key]
     parts = raw_value.split(",")
 
     if len(parts) != 2:
-        errors.append(f"{key} doit être au format x,y")
+        errors.append(f"{key} must be in x,y format")
         return None
 
     try:
         x = int(parts[0].strip())
         y = int(parts[1].strip())
     except ValueError:
-        errors.append(f"{key} doit contenir deux entiers")
+        errors.append(f"{key} must contain two integers")
         return None
 
     if x < 0 or y < 0:
-        errors.append(f"{key} doit contenir des coordonnées >= 0")
+        errors.append(f"{key} must contain coordinates >= 0")
         return None
 
     return (x, y)
@@ -150,17 +150,17 @@ def parse_output_file(
     key = "OUTPUT_FILE"
 
     if key not in config:
-        errors.append(f"Clé manquante : {key}")
+        errors.append(f"Missing key: {key}")
         return None
 
     output_file = config[key].strip()
 
     if not output_file.endswith(".txt"):
-        errors.append("OUTPUT_FILE doit se terminer par .txt")
+        errors.append("OUTPUT_FILE must end with .txt")
         return None
 
     if output_file == ".txt":
-        errors.append("OUTPUT_FILE doit contenir un nom avant .txt")
+        errors.append("OUTPUT_FILE must contain a name before .txt")
         return None
 
     return output_file
@@ -174,7 +174,7 @@ def parse_bool(
     """Parse boolean written as True or False."""
 
     if key not in config:
-        errors.append(f"Clé manquante : {key}")
+        errors.append(f"Missing key: {key}")
         return None
 
     value = config[key].strip()
@@ -184,7 +184,7 @@ def parse_bool(
     if value == "False":
         return False
 
-    errors.append(f"{key} doit valoir True ou False")
+    errors.append(f"{key} must be True or False")
     return None
 
 
@@ -203,15 +203,15 @@ def validate_coordinates(
     if entry is not None:
         x, y = entry
         if not (0 <= x < width and 0 <= y < height):
-            errors.append("ENTRY est en dehors du labyrinthe")
+            errors.append("ENTRY is outside the maze")
 
     if exit_pos is not None:
         x, y = exit_pos
         if not (0 <= x < width and 0 <= y < height):
-            errors.append("EXIT est en dehors du labyrinthe")
+            errors.append("EXIT is outside the maze")
 
     if entry is not None and exit_pos is not None and entry == exit_pos:
-        errors.append("ENTRY et EXIT ne peuvent pas être identiques")
+        errors.append("ENTRY and EXIT cannot be identical")
 
 
 def load_config(file_name: str = "config.txt") -> dict:
@@ -228,7 +228,7 @@ def load_config(file_name: str = "config.txt") -> dict:
     config, errors = read_config(file_name)
 
     if not config and not errors:
-        errors.append("Le fichier de configuration est vide")
+        errors.append("The configuration file is empty")
 
     width = parse_positive_int(config, "WIDTH", errors)
     height = parse_positive_int(config, "HEIGHT", errors)
