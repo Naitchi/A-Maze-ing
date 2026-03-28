@@ -88,7 +88,7 @@ class MazeGenerator:
         pattern_height: int = len(pattern)
         pattern_width: int = len(pattern[0])
         if self.height < pattern_height + 3 or self.width < pattern_width + 3:
-            print("Impossible d'imprimer un 42 au milieu du maze")
+            print("Error: Impossible to print 42 logo in the middle of the maze.")
             return []
 
         start_x: int = (self.width - pattern_width) // 2
@@ -298,11 +298,11 @@ class MazeGenerator:
 
     def parsing_start_end_in_forty_two(self):
         if self.start in self.fortytwo or self.end in self.fortytwo:
-            raise ValueError("Error Start or End in 42 logo\n")
+            raise ValueError("Error: start or end is inside the 42 logo.")
 
     def maze_generator(self) -> None:
         """
-        Generate and print a maze with an centered 42 forbidden area if
+        Generate a maze with a centered forbidden 42 area when there is
         enough space.
 
         Args:
