@@ -36,6 +36,8 @@ clean:
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
 	find . -not -path "./.venv/*" -type f -name "*.txt" ! -name "default_config.txt" ! -name "requirements.txt" -delete
+	rm -rf mazegen-1.0.0-py3-none-any.whl
+	rm -rf mazegen-1.0.0.tar.gz
 
 lint:
 	$(VENV)/bin/flake8 . --exclude=.venv,__pycache__,.mypy_cache 
@@ -44,6 +46,11 @@ lint:
 lint-strict:
 	flake8 . --exclude=.venv,__pycache__,.mypy_cache 
 	mypy . --strict --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs --exclude=.venv --exclude=__pycache__ --exclude=.mypy_cache
+
+build:
+	$(PYTHON) -m pip install --upgrade build setuptools wheel
+	$(PYTHON) -m build -o .
+	rm -rf mazegen.egg-info/
 
 .DEFAULT_GOAL := help
 

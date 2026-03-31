@@ -4,3 +4,5 @@ __pycache__
 *.txt
 !requirements.txt
 !default_config.txt
+mazegen-1.0.0.tar.gz
+mazegen-1.0.0-py3-none-any.whl

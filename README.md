@@ -98,32 +98,55 @@ The reusable part of this project is the `MazeGenerator` class, which can be imp
 
 ### Installation
 
-No extra installation is required when using the project source directly.
+### Installation as a Package
 
-### Import
+You can install `mazegen` as a reusable Python package:
 
-```python
-from maze_generator import MazeGenerator
+```bash
+# From the project directory
+pip install .
+
+# Or build and install the wheel
+make build
+pip install dist/mazegen-1.0.0-py3-none-any.whl
 ```
 
-### Example
+### Import and Usage
 
 ```python
-from maze_generator import MazeGenerator
+from mazegen import MazeGenerator
 
+# Generate a maze
 maze = MazeGenerator(
-	width=20,
-	height=15,
-	start=(0, 0),
-	end=(19, 14),
-	output_file="maze.txt",
-	perfect=True,
-	seed=42,
+    width=20,
+    height=15,
+    start=(0, 0),
+    end=(19, 14),
+    output_file="output.txt",
+    perfect=True,
+    seed=42,  # Optional: for reproducibility
 )
 
-print(maze.maze)  # hexadecimal grid
-print(maze.path)  # shortest path
+# The maze is automatically generated and saved to output_file
+# The solution path is computed using Dijkstra's algorithm
+# Access the maze structure or path via the object attributes
+print(f"Maze generated: {maze.output_file}")
+print(f"Solution path: {maze.path}")
 ```
+
+**`MazeGenerator` class**
+
+Constructor parameters:
+- `width` (int): Maze width in cells
+- `height` (int): Maze height in cells
+- `start` (tuple[int, int]): Entry coordinates (x, y)
+- `end` (tuple[int, int]): Exit coordinates (x, y)
+- `output_file` (str): Output filename for the generated maze
+- `perfect` (bool): If `True`, generates a perfect maze (single path); if `False`, removes random interior walls to create loops
+- `seed` (int | None): Optional random seed for reproducibility
+
+**Output format**: The maze is written to the output file in hexadecimal format, with one cell per character. Each hexadecimal digit represents wall states (bits 0-3 = up, down, left, right). The solution path computed by Dijkstra's algorithm is appended at the end
+print(maze.path)  # shortest path
 
 ---
 
