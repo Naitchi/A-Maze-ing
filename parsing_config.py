@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 
 
 def read_config(file_name: str) -> tuple[dict[str, str], list[str]]:
@@ -218,7 +218,7 @@ def validate_coordinates(
             "than a 100 for technical perfomance")
 
 
-def load_config(file_name: str = "config.txt") -> dict:
+def load_config(file_name: str = "config.txt") -> dict[str, Any]:
     """
     Load, parse and validate config file.
 
