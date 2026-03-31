@@ -1,19 +1,18 @@
 from typing import Optional
 
 
-VALID_KEYS = {
-    "WIDTH",
-    "HEIGHT",
-    "ENTRY",
-    "EXIT",
-    "OUTPUT_FILE",
-    "PERFECT",
-    "SEED",
-}
-
-
 def read_config(file_name: str) -> tuple[dict[str, str], list[str]]:
     """Read raw key=value pairs from config file."""
+
+    valid_keys = {
+        "WIDTH",
+        "HEIGHT",
+        "ENTRY",
+        "EXIT",
+        "OUTPUT_FILE",
+        "PERFECT",
+        "SEED",
+    }
 
     config: dict[str, str] = {}
     errors: list[str] = []
@@ -45,7 +44,7 @@ def read_config(file_name: str) -> tuple[dict[str, str], list[str]]:
                     errors.append(f"Duplicate key: {key}")
                     continue
 
-                if key not in VALID_KEYS:
+                if key not in valid_keys:
                     errors.append(f"Unknown key: {key}")
                     continue
 
@@ -212,6 +211,11 @@ def validate_coordinates(
 
     if entry is not None and exit_pos is not None and entry == exit_pos:
         errors.append("ENTRY and EXIT cannot be identical")
+
+    if width >= 101 or height >= 101:
+        errors.append(
+            "WIDTH and HEIGHT can't be more"
+            "than a 100 for technical perfomance")
 
 
 def load_config(file_name: str = "config.txt") -> dict:

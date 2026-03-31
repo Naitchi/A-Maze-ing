@@ -67,7 +67,7 @@ class Create_Img:
     def offset_finder(self, x, y):
         return (y * self.img.sl + x * self.img.bpp // 8)
 
-    def clear_image(self): 
+    def clear_image(self):
         self.img.data[:] = b'\x00' * (len(self.img.data))
 
     def render_walls(self, col, row, value):
@@ -213,18 +213,54 @@ class App:
         self.m.mlx_loop_exit(self.mlx_ptr)
 
     def menu(self):
-        text = "| 1: Close | 2: Color | 3: Path | 4: Regen |"
-        text_width = len(text) * 8
+        text1 = "1: Close"
+        text2 = "2: Color"
+        text3 = "3: Path"
+        text4 = "4: Regen"
+        text_width = len(text1) * 8
         win_width = self.img.width + 200
         x = (win_width - text_width) // 2
-        y = 75
+        y = 40
         self.m.mlx_string_put(
             self.mlx_ptr,
             self.win,
             x,
             y,
             self.render_config.menu_color,
-            text)
+            text1)
+
+        text_width = len(text1) * 8
+        x = (win_width - text_width) // 2
+        y = 55
+        self.m.mlx_string_put(
+            self.mlx_ptr,
+            self.win,
+            x,
+            y,
+            self.render_config.menu_color,
+            text2)
+
+        text_width = len(text1) * 8
+        x = (win_width - text_width) // 2
+        y = 70
+        self.m.mlx_string_put(
+            self.mlx_ptr,
+            self.win,
+            x,
+            y,
+            self.render_config.menu_color,
+            text3)
+
+        text_width = len(text1) * 8
+        x = (win_width - text_width) // 2
+        y = 85
+        self.m.mlx_string_put(
+            self.mlx_ptr,
+            self.win,
+            x,
+            y,
+            self.render_config.menu_color,
+            text4)
 
     def cycle_color(self, ):
         self.renderer.clear_image()
