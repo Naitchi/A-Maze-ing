@@ -1,5 +1,5 @@
 import random
-from dikjstra import dikjstra
+from .dikjstra import dikjstra
 
 Coord = tuple[int, int]
 Direction = tuple[int, int]

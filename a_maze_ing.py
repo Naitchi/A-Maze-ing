@@ -1,5 +1,5 @@
 from parsing_config import load_config
-from maze_generator import MazeGenerator
+from mazegen import MazeGenerator
 from render import App
 import sys
 
