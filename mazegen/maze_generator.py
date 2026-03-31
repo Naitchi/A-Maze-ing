@@ -25,8 +25,10 @@ class MazeGenerator:
         self.perfect = perfect
         self.seed: int | None = seed
         self.in_linking: list[Coord] = []
-        self.not_linked: list[Coord] = []
-        self.fortytwo: list[Coord] = []
+        self.not_linked: list[Coord] = [
+            (x, y) for y in range(self.height) for x in range(self.width)
+        ]
+        self.fortytwo: list[Coord] = self.build_fortytwo()
         self.linked: list[Coord] = []
         self.maze: Maze = [[15 for _ in range(width)] for _ in range(height)]
         self.maze_generator()
@@ -297,7 +299,7 @@ class MazeGenerator:
                     if is_path_connected:
                         return
 
-    def parsing_start_end_in_forty_two(self):
+    def parsing_start_end_in_forty_two(self) -> None:
         if self.start in self.fortytwo or self.end in self.fortytwo:
             raise ValueError("Error: start or end is inside the 42 logo.")
 
@@ -316,11 +318,6 @@ class MazeGenerator:
         if self.seed is not None:
             random.seed(self.seed)
 
-        self.not_linked: list[Coord] = [
-            (x, y) for y in range(self.height) for x in range(self.width)
-        ]
-        self.linked: list[Coord] = []
-        self.fortytwo: list[Coord] = self.build_fortytwo()
         try:
             self.parsing_start_end_in_forty_two()
         except ValueError as e:
@@ -339,7 +336,9 @@ class MazeGenerator:
             self.draw_a_path()
 
         if not self.perfect:
-            self.remove_random_inner_walls((self.width * self.height) / 10)
+            self.remove_random_inner_walls(
+                int((self.width * self.height) / 10)
+            )
 
     def write_maze_to_file(self) -> None:
         with open(self.output_file, "w") as f:
