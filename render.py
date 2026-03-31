@@ -56,25 +56,20 @@ class Create_Img:
         self.render_config_data = render_config_data
         self.get_ppc()
 
-    def get_ppc(self):  # Calcul le nombre de pixel qu'on a par cellule du maze
+    def get_ppc(self):
         img_size = min(self.img.width, self.img.height)
         maze_size = max(self.maze.width, self.maze.height)
         self.render_config_data.ppc = img_size // maze_size
 
-    def put_pixel(self, offset, color) -> None:  # Ecrit chaque octet du pixel
+    def put_pixel(self, offset, color) -> None:
         self.img.data[offset: offset + 4] = color.to_bytes(4, 'little')
 
-    # Trouve le pixel exacte qu'on doit print -> on skip chaque ligne + chaque
-    # pixel dans la ligne
     def offset_finder(self, x, y):
         return (y * self.img.sl + x * self.img.bpp // 8)
 
-    def clear_image(self):  # Mets chaque pixel en noir pour clear l'image
+    def clear_image(self): 
         self.img.data[:] = b'\x00' * (len(self.img.data))
 
-    # Va recuperer la base qui est le debut de notre cellule en haut a gauche,
-    # puis va regarder la valeur envoyer depuis la grille du maze et regarder
-    # le binaire pour savoir quel mur doit etre rempli ou non
     def render_walls(self, col, row, value):
         ppc = self.render_config_data.ppc
         color = self.render_config_data.color
@@ -99,8 +94,6 @@ class Create_Img:
             for dy in range(ppc):
                 self.put_pixel(base + dy * sl, color)
 
-    # Si une valeur dans la grille est de 15 tu remplis toute la cellule (42
-    # pattern)
     def render_cell(self, col, row, color):
         ppc = self.render_config_data.ppc
         for dy in range(ppc):
@@ -108,8 +101,6 @@ class Create_Img:
                 offset = self.offset_finder(col * ppc + dx, row * ppc + dy)
                 self.put_pixel(offset, color)
 
-    # On va recuperer chaque valeur de la grille, recuperer sa position dans
-    # le maze et appeller la fonction qui va print les murs
     def print_maze(self):
         for row in range(self.maze.height):
             for col in range(self.maze.width):
@@ -120,7 +111,6 @@ class Create_Img:
                 else:
                     self.render_walls(col, row, value)
 
-    # Fonction qui va print le chemin de solution sur l'image
     def render_path(self):
         if not self.render_config_data.show_path:
             return
@@ -131,7 +121,6 @@ class Create_Img:
                 self.render_cell(
                     x, y, self.render_config_data.path_color)
 
-    # Va recup la position ou on est + la direction ou on va
     @staticmethod
     def next_direction(direction: str, current: tuple) -> tuple:
         x, y = current
@@ -225,7 +214,7 @@ class App:
 
     def menu(self):
         text = "| 1: Close | 2: Color | 3: Path | 4: Regen |"
-        text_width = len(text) * 8      # 8px par caractère approximatif
+        text_width = len(text) * 8
         win_width = self.img.width + 200
         x = (win_width - text_width) // 2
         y = 75
