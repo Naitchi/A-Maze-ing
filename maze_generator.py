@@ -88,7 +88,8 @@ class MazeGenerator:
         pattern_height: int = len(pattern)
         pattern_width: int = len(pattern[0])
         if self.height < pattern_height + 3 or self.width < pattern_width + 3:
-            print("Error: Impossible to print 42 logo in the middle of the maze.")
+            print("Error: Impossible to print "
+                  "42 logo in the middle of the maze.")
             return []
 
         start_x: int = (self.width - pattern_width) // 2
