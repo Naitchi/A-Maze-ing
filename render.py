@@ -4,27 +4,33 @@ from mlx import Mlx
 
 
 class ImgData:
+    """Store MLX image buffer data and its display properties."""
+
     def __init__(self) -> None:
-        self.real_img = None
-        self.width = 0
-        self.height = 0
+        self.real_img: Any = None
+        self.width: int = 0
+        self.height: int = 0
         self.data: bytearray = bytearray()
-        self.bpp = 0
-        self.sl = 0
+        self.bpp: int = 0
+        self.sl: int = 0
+        self.iformat: int = 0
 
 
 class RenderConfig:
-    def __init__(self):
-        self.color = 0xFFFFFFFF
-        self.ppc = 0
-        self.show_path = True
-        self.entry_color = 0xFF00FF00
-        self.exit_color = 0xFFFF0000
-        self.path_color = 0xFF800080
-        self.menu_color = 0xFFFFFFFF
+    """Hold all rendering configuration such as colors and display toggles."""
 
-    def next_color(self):
-        colors = [
+    def __init__(self) -> None:
+        self.color: int = 0xFFFFFFFF
+        self.ppc: int = 0
+        self.show_path: bool = True
+        self.entry_color: int = 0xFF00FF00
+        self.exit_color: int = 0xFFFF0000
+        self.path_color: int = 0xFF800080
+        self.menu_color: int = 0xFFFFFFFF
+
+    def next_color(self) -> None:
+        """Cycle to the next wall color in the predefined color list."""
+        colors: list[int] = [
             0xFFFF0000,
             0xFF00FF00,
             0xFF0000FF,
@@ -41,6 +47,9 @@ class RenderConfig:
 
 
 class Create_Img:
+    """Handle all pixel-level rendering
+    of the maze onto the MLX image buffer."""
+
     def __init__(self,
                  mlx: Mlx,
                  mlx_ptr: Any,
@@ -56,75 +65,106 @@ class Create_Img:
         self.render_config_data = render_config_data
         self.get_ppc()
 
-    def get_ppc(self):
-        img_size = min(self.img.width, self.img.height)
-        maze_size = max(self.maze.width, self.maze.height)
+    def get_ppc(self) -> None:
+        """Compute pixels-per-cell based on image and maze dimensions."""
+        img_size: int = min(self.img.width, self.img.height)
+        maze_size: int = max(self.maze.width, self.maze.height)
         self.render_config_data.ppc = img_size // maze_size
 
-    def put_pixel(self, offset, color) -> None:
+    def put_pixel(self, offset: int, color: int) -> None:
+        """Write a single pixel color at the
+          given byte offset in the image buffer."""
         self.img.data[offset: offset + 4] = color.to_bytes(4, 'little')
 
-    def offset_finder(self, x, y):
+    def offset_finder(self, x: int, y: int) -> int:
+        """Return the byte offset in the
+        image buffer for the pixel at (x, y)."""
         return (y * self.img.sl + x * self.img.bpp // 8)
 
-    def clear_image(self):
+    def clear_image(self) -> None:
+        """Fill the entire image buffer with zeros (black/transparent)."""
         self.img.data[:] = b'\x00' * (len(self.img.data))
 
-    def render_walls(self, col, row, value):
-        ppc = self.render_config_data.ppc
-        color = self.render_config_data.color
-        opp = self.img.bpp // 8
-        sl = self.img.sl
+    def render_walls(self, col: int, row: int, value: int) -> None:
+        """Draw the walls of a cell based on its bitmask value.
 
-        base = self.offset_finder(col * ppc, row * ppc)
+        Args:
+            col: Column index of the cell.
+            row: Row index of the cell.
+            value: Wall bitmask (bit 0=North, 1=East, 2=South, 3=West).
+        """
+        ppc: int = self.render_config_data.ppc
+        color: int = self.render_config_data.color
+        opp: int = self.img.bpp // 8
+        sl: int = self.img.sl
+        base: int = self.offset_finder(col * ppc, row * ppc)
 
         if value & 1:  # North
             for dx in range(ppc):
                 self.put_pixel(base + dx * opp, color)
         if value & 2:  # East
             for dy in range(ppc):
-                self.put_pixel(base + dy * sl +
-                               (ppc - 1) * opp, color)
-
+                self.put_pixel(base + dy * sl + (ppc - 1) * opp, color)
         if value & 4:  # South
             for dx in range(ppc):
-                self.put_pixel(base + (ppc - 1) *
-                               sl + dx * opp, color)
+                self.put_pixel(base + (ppc - 1) * sl + dx * opp, color)
         if value & 8:  # West
             for dy in range(ppc):
                 self.put_pixel(base + dy * sl, color)
 
-    def render_cell(self, col, row, color):
-        ppc = self.render_config_data.ppc
+    def render_cell(self, col: int, row: int, color: int) -> None:
+        """Fill an entire cell with a solid color.
+
+        Args:
+            col: Column index of the cell.
+            row: Row index of the cell.
+            color: ARGB color value to fill the cell with.
+        """
+        ppc: int = self.render_config_data.ppc
         for dy in range(ppc):
             for dx in range(ppc):
-                offset = self.offset_finder(col * ppc + dx, row * ppc + dy)
+                offset: int = self.offset_finder(
+                    col * ppc + dx, row * ppc + dy)
                 self.put_pixel(offset, color)
 
-    def print_maze(self):
+    def print_maze(self) -> None:
+        """Render all maze cells: filled
+          for fully closed cells, walls otherwise."""
         for row in range(self.maze.height):
             for col in range(self.maze.width):
-                value = self.maze.maze[row][col]
+                value: int = self.maze.maze[row][col]
                 if value == 15:
-                    self.render_cell(
-                        col, row, self.render_config_data.color)
+                    self.render_cell(col, row, self.render_config_data.color)
                 else:
                     self.render_walls(col, row, value)
 
-    def render_path(self):
+    def render_path(self) -> None:
+        """Draw the solution path from
+          entry to exit if show_path is enabled."""
         if not self.render_config_data.show_path:
             return
+        x: int
+        y: int
         x, y = self.maze.start
         for direction in self.maze.path[:-1]:
             x, y = self.next_direction(direction, (x, y))
             if 0 <= x < self.maze.width and 0 <= y < self.maze.height:
-                self.render_cell(
-                    x, y, self.render_config_data.path_color)
+                self.render_cell(x, y, self.render_config_data.path_color)
 
     @staticmethod
-    def next_direction(direction: str, current: tuple) -> tuple:
+    def next_direction(
+            direction: str, current: tuple[int, int]) -> tuple[int, int]:
+        """Return the next (x, y) position after moving in the given direction.
+
+        Args:
+            direction: One of 'N', 'E', 'S', 'W'.
+            current: Current (x, y) position.
+
+        Returns:
+            New (x, y) position after the move.
+        """
         x, y = current
-        moves = {
+        moves: dict[str, tuple[int, int]] = {
             "E": (x + 1, y),
             "S": (x, y + 1),
             "W": (x - 1, y),
@@ -133,6 +173,12 @@ class Create_Img:
         return moves[direction]
 
     def image_to_window(self, window_width: int) -> None:
+        """Push the rendered image buffer onto the MLX window.
+
+        Args:
+            window_width: Total width of the window
+            (unused, kept for signature consistency).
+        """
         self.mlx.mlx_put_image_to_window(
             self.mlx_ptr,
             self.window,
@@ -142,19 +188,16 @@ class Create_Img:
         )
 
     def draw_entry_exit(self) -> None:
+        """Render the entry cell in green and the exit cell in red."""
         entry_y, entry_x = self.maze.start
-        self.render_cell(
-            entry_y,
-            entry_x,
-            self.render_config_data.entry_color)
+        self.render_cell(entry_y, entry_x, self.render_config_data.entry_color)
 
         exit_y, exit_x = self.maze.end
-        self.render_cell(
-            exit_y,
-            exit_x,
-            self.render_config_data.exit_color)
+        self.render_cell(exit_y, exit_x, self.render_config_data.exit_color)
 
     def draw_all(self) -> None:
+        """Clear the image and redraw entry/exit,
+        path, walls, then push to window."""
         self.clear_image()
         self.draw_entry_exit()
         if self.render_config_data.show_path:
@@ -164,43 +207,55 @@ class Create_Img:
 
 
 class App:
-    def __init__(self, maze):
-        self.maze = maze
-        self.render_config = RenderConfig()
-        self.img = ImgData()
-        self.m = Mlx()
-        self.mlx_ptr = self.m.mlx_init()
+    """Manage the MLX window, event loop,
+    and user interactions for the maze viewer."""
 
-        size = max(maze.width, maze.height) * 40
+    def __init__(self, maze: MazeGenerator) -> None:
+        self.maze: MazeGenerator = maze
+        self.render_config: RenderConfig = RenderConfig()
+        self.img: ImgData = ImgData()
+        self.m: Mlx = Mlx()
+        self.mlx_ptr: Any = self.m.mlx_init()
+
+        size: int = max(maze.width, maze.height) * 40
         if size > 1500:
             self.img.height = 1500
             self.img.width = 1500
         else:
             self.img.height = size
             self.img.width = size
+
         self.img.real_img = self.m.mlx_new_image(
             self.mlx_ptr, self.img.width, self.img.height)
         self.img.data, self.img.bpp, self.img.sl, self.img.iformat = \
             self.m.mlx_get_data_addr(self.img.real_img)
 
-        self.win = self.m.mlx_new_window(
+        self.win: Any = self.m.mlx_new_window(
             self.mlx_ptr,
             self.img.width + 200,
             self.img.height + 200,
             "A_Maze_Ing")
 
-        self.renderer = Create_Img(
+        self.renderer: Create_Img = Create_Img(
             self.m, self.mlx_ptr, self.win,
             self.img, self.maze, self.render_config)
 
-    def run(self):
+    def run(self) -> None:
+        """Start the application: draw the maze, show the
+        menu, and enter the MLX event loop."""
         self.renderer.draw_all()
         self.menu()
         self.m.mlx_key_hook(self.win, self.on_key, self)
         self.m.mlx_loop(self.mlx_ptr)
 
-    def on_key(self, keycode, _):
-        actions = {
+    def on_key(self, keycode: int, _: Any) -> None:
+        """Dispatch a key press to the corresponding action.
+
+        Args:
+            keycode: MLX keycode of the pressed key.
+            _: Unused parameter required by the MLX hook signature.
+        """
+        actions: dict[int, Any] = {
             49: self.quit,
             50: self.cycle_color,
             51: self.toggle_path,
@@ -209,71 +264,42 @@ class App:
         if keycode in actions:
             actions[keycode]()
 
-    def quit(self):
+    def quit(self) -> None:
+        """Exit the MLX event loop and close the application."""
         self.m.mlx_loop_exit(self.mlx_ptr)
 
-    def menu(self):
-        text1 = "1: Close"
-        text2 = "2: Color"
-        text3 = "3: Path"
-        text4 = "4: Regen"
-        text_width = len(text1) * 8
-        win_width = self.img.width + 200
-        x = (win_width - text_width) // 2
-        y = 40
-        self.m.mlx_string_put(
-            self.mlx_ptr,
-            self.win,
-            x,
-            y,
-            self.render_config.menu_color,
-            text1)
+    def menu(self) -> None:
+        """Display the keyboard shortcut
+        menu centered at the top of the window."""
+        texts: list[str] = ["1: Close", "2: Color", "3: Path", "4: Regen"]
+        text_width: int = len(texts[0]) * 8
+        win_width: int = self.img.width + 200
+        x: int = (win_width - text_width) // 2
 
-        text_width = len(text1) * 8
-        x = (win_width - text_width) // 2
-        y = 55
-        self.m.mlx_string_put(
-            self.mlx_ptr,
-            self.win,
-            x,
-            y,
-            self.render_config.menu_color,
-            text2)
+        for i, text in enumerate(texts):
+            self.m.mlx_string_put(
+                self.mlx_ptr,
+                self.win,
+                x,
+                40 + i * 15,
+                self.render_config.menu_color,
+                text)
 
-        text_width = len(text1) * 8
-        x = (win_width - text_width) // 2
-        y = 70
-        self.m.mlx_string_put(
-            self.mlx_ptr,
-            self.win,
-            x,
-            y,
-            self.render_config.menu_color,
-            text3)
-
-        text_width = len(text1) * 8
-        x = (win_width - text_width) // 2
-        y = 85
-        self.m.mlx_string_put(
-            self.mlx_ptr,
-            self.win,
-            x,
-            y,
-            self.render_config.menu_color,
-            text4)
-
-    def cycle_color(self, ):
+    def cycle_color(self) -> None:
+        """Switch to the next wall color and redraw the maze."""
         self.renderer.clear_image()
         self.render_config.next_color()
         self.renderer.draw_all()
 
-    def toggle_path(self):
+    def toggle_path(self) -> None:
+        """Toggle solution path visibility and redraw the maze."""
         self.render_config.show_path = not self.render_config.show_path
         self.m.mlx_clear_window(self.mlx_ptr, self.win)
         self.menu()
         self.renderer.draw_all()
 
-    def regenerate(self):
+    def regenerate(self) -> None:
+        """Generate a new maze with the same parameters and redraw."""
         self.maze = MazeGenerator(
             self.maze.width,
             self.maze.height,

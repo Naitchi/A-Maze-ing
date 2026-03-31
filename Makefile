@@ -4,7 +4,7 @@ PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 MAIN_SCRIPT := a_maze_ing.py
 REQUIREMENTS := requirements.txt
-FILE :=
+FILE := 
 
 help:
 	@echo "Available commands:"
@@ -37,12 +37,12 @@ clean:
 	find . -type f -name "*.pyc" -delete
 
 lint:
-	$(VENV)/bin/flake8 . --exclude=.venv
-	$(VENV)/bin/mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs --exclude=.venv
+	$(VENV)/bin/flake8 . --exclude=.venv,__pycache__,.mypy_cache 
+	$(VENV)/bin/mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs --exclude=.venv --exclude=__pycache__ --exclude=.mypy_cache
 
 lint-strict:
-	flake8 .
-	mypy . --strict
+	flake8 . --exclude=.venv,__pycache__,.mypy_cache 
+	mypy . --strict --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs --exclude=.venv --exclude=__pycache__ --exclude=.mypy_cache
 
 .DEFAULT_GOAL := help
 
