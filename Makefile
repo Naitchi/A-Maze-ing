@@ -35,6 +35,7 @@ clean:
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
+	find . -not -path "./.venv/*" -type f -name "*.txt" ! -name "default_config.txt" ! -name "requirements.txt" -delete
 
 lint:
 	$(VENV)/bin/flake8 . --exclude=.venv,__pycache__,.mypy_cache 
