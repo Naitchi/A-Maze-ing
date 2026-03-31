@@ -34,8 +34,6 @@ make debug FILE=config.txt
 
 ## Configuration File Format
 
-<!-- Structure complète et format du fichier de config -->
-
 The configuration file must contain one `KEY=VALUE` pair per line.
 Lines starting with `#` are comments and are ignored.
 
