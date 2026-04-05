@@ -14,8 +14,8 @@ renderer and keeps the generation logic reusable.
 ### Installation
 
 ```bash
-make setup      # Create the venv
 make install    # Install dependencies
+source .venv/bin/activate
 ```
 
 ### Usage
