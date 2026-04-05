@@ -147,6 +147,7 @@ def parse_output_file(
     """Parse output file name."""
 
     key = "OUTPUT_FILE"
+    reserved_files = {"requirements.txt", "default_config.txt"}
 
     if key not in config:
         errors.append(f"Missing key: {key}")
@@ -160,6 +161,10 @@ def parse_output_file(
 
     if output_file == ".txt":
         errors.append("OUTPUT_FILE must contain a name before .txt")
+        return None
+
+    if output_file in reserved_files:
+        errors.append(f"OUTPUT_FILE cannot be a reserved file: {output_file}")
         return None
 
     return output_file
