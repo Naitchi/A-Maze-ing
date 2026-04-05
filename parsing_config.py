@@ -214,7 +214,7 @@ def validate_coordinates(
 
     if width >= 101 or height >= 101:
         errors.append(
-            "WIDTH and HEIGHT can't be more"
+            "WIDTH and HEIGHT can't be more "
             "than a 100 for technical perfomance")
 
 
