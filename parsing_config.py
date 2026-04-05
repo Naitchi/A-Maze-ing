@@ -11,7 +11,7 @@ def read_config(file_name: str) -> tuple[dict[str, str], list[str]]:
         "EXIT",
         "OUTPUT_FILE",
         "PERFECT",
-        "SEED",
+        "SEED"
     }
 
     config: dict[str, str] = {}
@@ -240,7 +240,9 @@ def load_config(file_name: str = "config.txt") -> dict[str, Any]:
     exit_pos = parse_coord(config, "EXIT", errors)
     output_file = parse_output_file(config, errors)
     perfect = parse_bool(config, "PERFECT", errors)
-    seed = parse_non_negative_int(config, "SEED", errors)
+
+    seed_errors: list[str] = []
+    seed = parse_non_negative_int(config, "SEED", seed_errors)
 
     validate_coordinates(width, height, entry, exit_pos, errors)
 
